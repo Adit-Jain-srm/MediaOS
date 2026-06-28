@@ -3,7 +3,7 @@
 This is the durable tracker a fresh agent can resume from. Update it in the same change that alters
 status. Cross-references: [architecture](./architecture.md), [ADRs](./adr/),
 [research-engine](./research-engine.md), [api](./api.md), [runbook](./runbook.md),
-[learnings](./learnings.md).
+[learnings](./learnings.md), [campaigns](./campaigns.md), [creative-studio](./creative-studio.md).
 
 ---
 
@@ -58,7 +58,29 @@ Verification (fresh run): `npx tsc --noEmit` (0 errors), `npm run lint` (0 error
 (**122 passing**, 16 files), and `npm run build` (success - the real integration gate that neither
 worker had run). Committed as Conventional Commits and pushed to `origin/main`.
 
-**Next:** Wave 3 - Creative Studio + Landing Pages (then Performance Intelligence, orchestration/seed, ship).
+**Wave 3 - Campaigns + Creative Studio: DONE, verified, committed.**
+
+Delivered (two parallel workers, integrated in a single pass):
+- **Campaigns** (`src/lib/services/campaign.service.ts`, `src/lib/campaign/**`,
+  `src/app/(dashboard)/campaigns/**`, `src/components/campaign/**`): RLS-scoped campaign CRUD, an AI
+  **brief builder** (goal/audience/budget -> structured, editable brief with a deterministic fallback),
+  **persona import** from saved research reports, a starting-point **template gallery**, a **budget
+  allocator**, and **platform recommendations**, surfaced through the campaigns hub, detail, and
+  new-campaign routes. See [campaigns](./campaigns.md).
+- **Creative Studio** (`src/lib/services/creative.service.ts`, `src/lib/creative/**`,
+  `src/app/(dashboard)/creatives/**`, `src/app/api/creative/**`, `src/components/creative/**`):
+  platform-aware AI **copy + visual** generation with per-platform limit enforcement, psychological
+  **hook analysis**, direct-response **variant scoring**, a research-derived **brand-voice** tone
+  profile, and exportable creative bits. The generation route streams **NDJSON** on the Node runtime
+  and degrades to seeded fixtures with zero credentials. See [creative-studio](./creative-studio.md).
+
+Verification (fresh run): `npx tsc --noEmit` (0 errors), `npm run lint` (0 errors), `npm test`
+(**237 passing**, 29 files), and `npm run build` (success - the real integration gate that neither
+worker had run). **No build-only fixes were needed**: both workers' Server/Client boundaries were
+already clean (client-safe barrel exports, server-only modules imported by explicit path, `runtime =
+"nodejs"` on the streaming route). Committed as Conventional Commits and pushed to `origin/main`.
+
+**Next:** Wave 4 - Landing Pages + Performance Intelligence (Analytics) (then orchestration/seed, ship).
 
 ---
 
@@ -113,7 +135,7 @@ A module is **not done** until all of the following are true (evidence shown, no
 | D6 | Test stack = Vitest (unit/integration, node env) + Playwright (e2e) | this build |
 | D7 | App boots without credentials (lazy env, `is*Configured()`), degrading gracefully | `src/lib/env.ts` |
 | D8 | DB Row/Insert/Update shapes are `type` aliases (not `interface`s) so `SupabaseClient<Database>` infers table types - no per-module remap casts | `src/types/database.ts`, [learnings](./learnings.md) |
-| D9 | Bright Data zones centralized + optional: `BRIGHTDATA_WEB_UNLOCKER_ZONE` (default `mcp_unlocker`), `BRIGHTDATA_SERP_ZONE` (falls back to the unlocker zone) | `src/lib/env.ts`, `.env.example` |
+| D9 | Bright Data zones centralized + optional, now **live-configured**: Web Unlocker `mcp_unlocker`, SERP `serp_api1`, Scraping Browser WSS (`BRIGHTDATA_BROWSER_WS`) - set in env, **not yet wired into code** | `src/lib/env.ts`, `.env.example` |
 | D10 | Operator runs demo-mode without credentials; Research degrades via a 3-layer fallback (live -> enriched -> seeded fixtures) | `src/lib/agent/**`, `src/lib/research/**` |
 
 ---
@@ -124,7 +146,8 @@ A module is **not done** until all of the following are true (evidence shown, no
 |---|---|---|
 | OPEN | Bright Data Pro (`web_data_*`) may be inactive | Engine degrades to verified free-tier search+scrape; Pro providers gated by `isAvailable()` |
 | OPEN | Azure image API version (`gpt-image`) | Likely needs a preview `api-version`; configurable via env (learnings) |
-| OPEN | Are real credentials in `.env.local`? | App boots without them; verify before live demo / seed |
+| PARTIAL | Are real credentials in `.env.local`? | Bright Data is live-configured (Web Unlocker `mcp_unlocker`, SERP `serp_api1`, Scraping Browser WSS); still verify Azure/Supabase before live demo / seed |
+| OPEN | Bright Data Scraping Browser not yet wired into code | **Carry-forward (Wave 4/5):** wire the Scraping Browser (`puppeteer-core`) into the competitor-ads / social providers + validate a live SERP (`brd_json`) / Unlocker round-trip during integration |
 | OPEN | Demo seed realism (90-day analytics) | `analytics-seed` phase: fatigue curves, seasonality, platform behaviors |
 | RESOLVED | Git remote | `origin` exists -> https://github.com/Adit-Jain-srm/MediaOS (branch `main`) |
 | RESOLVED | Reference repo leaking into build | Excluded in `.gitignore`, `tsconfig`, `eslint`, `.vercelignore` |
@@ -143,3 +166,9 @@ A module is **not done** until all of the following are true (evidence shown, no
   per-module remap casts; removed the leftover Operator-rail placeholder footer; centralized the Bright
   Data zone env vars. Full gate re-run fresh: `tsc` (0), `lint` (0), `npm test` (**122 passing**, 16
   files), `npm run build` (success). Committed as Conventional Commits and pushed to `origin/main`.
+- **2026-06-28** - Wave 3 integrated: **Campaigns** + **Creative Studio** (built by two parallel
+  workers) merged in one pass. Full gate re-run fresh: `tsc` (0), `lint` (0), `npm test` (**237
+  passing**, 29 files), `npm run build` (success) - **no build-only fixes required** (both workers'
+  Server/Client boundaries were already clean). Bright Data is now **live-configured** (Web Unlocker
+  `mcp_unlocker`, SERP `serp_api1`, Scraping Browser WSS in env, not yet wired into code). Committed as
+  Conventional Commits and pushed to `origin/main`. Next: Wave 4 (Landing Pages + Analytics).

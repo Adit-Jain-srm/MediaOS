@@ -109,3 +109,31 @@ Never repeat a class of mistake twice.
   import server-only code (e.g. `next/headers`) and still pass all three checks.
 - **Rule:** Always run `npm run build` as the final gate before declaring integration done. A green
   tsc/lint/test is necessary but not sufficient.
+
+---
+
+## 2026-06-28 - Wave 3 (Campaigns + Creative Studio) integration
+
+### Parallel workers transiently see each other's `tsc`/`lint` errors
+- **Problem:** While two workers built Campaigns and Creative Studio against the same uncommitted
+  working tree, each worker's `tsc`/`lint` intermittently flagged errors that originated in the *other*
+  worker's half-written files (missing exports, not-yet-created modules) - even though its own code was
+  correct. This can spook a worker into "fixing" code that isn't broken.
+- **Root cause:** A shared, uncommitted working tree means every type-check/lint sees the *union* of
+  both workers' in-flight edits. Cross-module imports resolve against whatever the sibling has written
+  so far, so transient errors appear and vanish as the sibling progresses.
+- **Rule:** During parallel work, treat a worker's own mid-flight `tsc`/`lint` as **advisory only**.
+  The authoritative signal is the **post-integration gate**, run once after both workers finish on the
+  combined tree - and `next build` remains the real gate (tsc/lint/test can't catch Server/Client
+  boundary or RSC bundling defects). Don't chase a sibling's transient errors mid-build.
+
+### Clean Server/Client boundaries make integration a no-op
+- **Problem:** The integration gate is where parallel work usually breaks (`next build` surfaces
+  client components importing server-only code). Wave 3 passed `build` with **zero** fixes.
+- **Root cause (why it worked):** Each module exposed a **client-safe barrel** (`@/lib/<module>`)
+  re-exporting only pure modules, kept server-only modules (Azure/Supabase, `next/headers`) behind
+  explicit-path imports used only by server actions / route handlers, and pinned the streaming route to
+  `export const runtime = "nodejs"`. tsc/lint stayed green *and* so did build.
+- **Rule:** Bake the boundary into the module's public surface from the start: a pure barrel for
+  clients, explicit server-only paths for actions/routes, and an explicit `runtime` on any route doing
+  Node-only work. Boundary discipline up front turns the integration gate into a formality.
