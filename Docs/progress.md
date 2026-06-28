@@ -35,6 +35,31 @@ Delivered:
 Verification (foundation baseline): `npx tsc --noEmit`, `npm run lint`, `npm run build`,
 `npm test` all green. Baseline committed - see `git log` for hashes.
 
+**Wave 2 - Audience Research Intelligence Engine + Operator agent: DONE, verified, committed.**
+
+Delivered (two parallel workers, integrated in a single pass):
+- **Research Engine** (`src/lib/research/**`, `src/app/(dashboard)/research/**`,
+  `src/components/research/**`, `src/app/api/research/run`): provider implementations (search-intent,
+  news, reddit/community, social, competitor-ads, web-intel), analyzer, orchestrator, RLS-scoped
+  persistence with a lossless report snapshot, and the full research workspace UI (personas, pain
+  points, trends, competitor ads, sources/citations, comparison, export). Degrades through a **3-layer
+  fallback** (live Bright Data -> enriched -> seeded fixtures) so it always renders with zero credentials.
+- **Operator agent** (`src/lib/agent/**`, `src/app/(dashboard)/operator/**`,
+  `src/app/api/operator/chat`, `src/components/agent/**`): plan/execute/observe runtime, streamed
+  events, typed tool calls, fail-safe persistence, and the compact rail + full workspace chat UI. Runs
+  in **demo-mode** with no Azure/Supabase credentials required.
+- **Central typing fix:** `src/types/database.ts` Row shapes are now `type` aliases (not `interface`s)
+  so `SupabaseClient<Database>` infers Row/Insert/Update; the per-module remap casts in `store.ts` and
+  `persistence.ts` were removed (see [learnings](./learnings.md)).
+- **Env consistency:** Bright Data zones (`BRIGHTDATA_WEB_UNLOCKER_ZONE`, `BRIGHTDATA_SERP_ZONE`) are
+  now centralized in `src/lib/env.ts` + `.env.example` (optional, with defaults).
+
+Verification (fresh run): `npx tsc --noEmit` (0 errors), `npm run lint` (0 errors), `npm test`
+(**122 passing**, 16 files), and `npm run build` (success - the real integration gate that neither
+worker had run). Committed as Conventional Commits and pushed to `origin/main`.
+
+**Next:** Wave 3 - Creative Studio + Landing Pages (then Performance Intelligence, orchestration/seed, ship).
+
 ---
 
 ## Build Wave Plan + File-Claim Map
@@ -47,11 +72,11 @@ extend via new files, don't rewrite. Serialize all git operations (one committer
 | Wave | Module (plan id) | Owns (file-claim) | Depends on |
 |---|---|---|---|
 | **0** | Foundation | (done) `src/lib/*` contracts, `supabase/`, shell | - |
-| **1** | Operator core (`agent-core`) | `src/lib/agent/runtime.ts`, `src/app/(dashboard)/operator/**`, `src/components/agent/**`, `src/app/api/agent/**` | Wave 0 |
-| **1** | Research core (`research-core`) | Bright Data transport in `src/lib/research/brightdata.ts`, `src/lib/research/providers/_shared/**` | Wave 0 |
-| **2** | Research providers + AI (`research-providers`, `research-ai`) | `src/lib/research/providers/**`, `analyzer` impl behind `setResearchAnalyzer` | Wave 1 research-core |
-| **2** | Research UI (`research-ui`) | `src/components/research/**`, `src/app/(dashboard)/research/**` | Wave 1 |
-| **2** | Agent tools (`agent-tools`) | `src/lib/agent/tools/**` (register research first) | Wave 1 |
+| **1** | (done) Operator core (`agent-core`) | `src/lib/agent/runtime.ts`, `src/app/(dashboard)/operator/**`, `src/components/agent/**`, `src/app/api/agent/**` | Wave 0 |
+| **1** | (done) Research core (`research-core`) | Bright Data transport in `src/lib/research/brightdata.ts`, `src/lib/research/providers/_shared/**` | Wave 0 |
+| **2** | (done) Research providers + AI (`research-providers`, `research-ai`) | `src/lib/research/providers/**`, `analyzer` impl behind `setResearchAnalyzer` | Wave 1 research-core |
+| **2** | (done) Research UI (`research-ui`) | `src/components/research/**`, `src/app/(dashboard)/research/**` | Wave 1 |
+| **2** | (done) Agent tools (`agent-tools`) | `src/lib/agent/tools/**` (register research first) | Wave 1 |
 | **3** | Campaigns (`campaigns`) | `campaign.service` impl, `src/components/campaign/**`, `src/app/(dashboard)/campaigns/**` | Wave 2 |
 | **3** | Creative Studio (`creative-*`) | `creative.service` impl, `src/components/creative/**`, `src/app/(dashboard)/creatives/**`, `creative-images` storage | Wave 2 |
 | **4** | Landing Pages (`landing-*`) | `landing.service` impl, `src/components/landing-page/**`, `src/app/(dashboard)/landing-pages/**`, `src/app/lp/**`, `src/app/api/lead`, `src/app/api/page-view` | Wave 3 |
@@ -87,6 +112,9 @@ A module is **not done** until all of the following are true (evidence shown, no
 | D5 | Agent = typed tool registry + Zod-validated `defineTool` + plan/execute/observe loop | [ADR 0004](./adr/0004-agent-runtime.md) |
 | D6 | Test stack = Vitest (unit/integration, node env) + Playwright (e2e) | this build |
 | D7 | App boots without credentials (lazy env, `is*Configured()`), degrading gracefully | `src/lib/env.ts` |
+| D8 | DB Row/Insert/Update shapes are `type` aliases (not `interface`s) so `SupabaseClient<Database>` infers table types - no per-module remap casts | `src/types/database.ts`, [learnings](./learnings.md) |
+| D9 | Bright Data zones centralized + optional: `BRIGHTDATA_WEB_UNLOCKER_ZONE` (default `mcp_unlocker`), `BRIGHTDATA_SERP_ZONE` (falls back to the unlocker zone) | `src/lib/env.ts`, `.env.example` |
+| D10 | Operator runs demo-mode without credentials; Research degrades via a 3-layer fallback (live -> enriched -> seeded fixtures) | `src/lib/agent/**`, `src/lib/research/**` |
 
 ---
 
@@ -109,3 +137,9 @@ A module is **not done** until all of the following are true (evidence shown, no
   system/shared contracts, Vitest+Playwright test harness (35 unit tests passing), and full `Docs/`
   set (architecture, ADRs 0001-0004, research-engine, api, runbook, learnings, progress). Committed
   as Conventional Commits and pushed to `origin/main`. See `git log --oneline` for hashes.
+- **2026-06-28** - Wave 2 integrated: **Audience Research Intelligence Engine** + **Operator agent**
+  (built by two parallel workers) merged in one pass. Fixed the central `Database` typing defect (Row
+  shapes -> `type` aliases) so `SupabaseClient<Database>` infers table types, and removed the duplicated
+  per-module remap casts; removed the leftover Operator-rail placeholder footer; centralized the Bright
+  Data zone env vars. Full gate re-run fresh: `tsc` (0), `lint` (0), `npm test` (**122 passing**, 16
+  files), `npm run build` (success). Committed as Conventional Commits and pushed to `origin/main`.

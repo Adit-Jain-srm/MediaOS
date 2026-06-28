@@ -1,69 +1,112 @@
-# ADR 0004: Agent Runtime (tool-calling loop + typed tool registry)
+# ADR 0004: Agent Runtime (plan -> execute -> observe loop)
 
-- **Status:** Accepted (contracts); runtime wiring in the agent-core phase
+- **Status:** Accepted (implemented in the agent-core phase)
 - **Date:** 2026-06-28
-- **Deciders:** Foundation build
+- **Deciders:** Foundation build, agent-core phase
 
 ## Context
 
 The Operator is the primary product surface. It must decompose a natural-language goal into a
-visible plan, then execute it by calling real platform capabilities, streaming its reasoning and
-producing real artifacts. Two failure modes must be designed out from the start:
+visible plan, execute it by calling real platform capabilities, stream its reasoning, and produce
+real artifacts. Two failure modes had to be designed out from the start:
 
 1. **Hallucinated / malformed tool arguments** breaking actions mid-run.
 2. **Drift** between what the agent can do and what the manual screens can do.
 
+Two operational realities also had to be respected:
+
+3. The app must **boot and demo without credentials** (Azure may be unset).
+4. The runtime must be **testable offline** (no network, deterministic) per the verification strategy.
+
 ## Decision
 
-### Capabilities are typed tools
+### Capabilities are typed tools (unchanged from the foundation contract)
 
-Every platform capability is an `AgentTool` (`src/lib/agent/types.ts`): a name, description,
-category, a **Zod** `parameters` schema, an `execute(params, ctx)` function, and an optional
-artifact renderer. Feature teams author tools with full type-safety via `defineTool` and register
-them on the shared `agentToolRegistry` singleton.
+Every platform capability is an `AgentTool` (`src/lib/agent/types.ts`): a name, description, category,
+a **Zod** `parameters` schema, an `execute(params, ctx)` function, and an optional artifact renderer.
+Feature teams author tools with `defineTool` and register them on the shared `agentToolRegistry`.
+`defineTool` `safeParse`s raw arguments before invoking `execute`, so a hallucinated argument returns
+a structured `{ ok: false, error }` the agent can recover from instead of throwing.
 
-```ts
-const tool = defineTool({
-  name: "research_audience",
-  description: "Run the research engine for a query and return cited personas",
-  category: "research",
-  parameters: z.object({ query: z.string(), providers: z.array(z.string()).optional() }),
-  execute: async (params, ctx) => ({ ok: true, data: /* ... */, artifact: /* ... */ }),
-});
-agentToolRegistry.register(tool);
-```
+### The runtime is a streamed plan -> execute -> observe loop
 
-`defineTool` wraps the typed config into a type-erased `AgentTool`. At call time it **`safeParse`s
-the raw arguments** before invoking `execute`; invalid arguments return a structured
-`{ ok: false, error }` the agent can read and recover from, instead of throwing.
+`src/lib/agent/runtime.ts` implements `runOperator(input, ctx, deps)`, an async generator of typed
+`OperatorEvent`s:
 
-### The runtime is plan -> execute -> observe
+1. **Plan.** A dedicated planning pass (Azure GPT-4o via `generateChat`) decomposes the goal into an
+   ordered `AgentPlan`; the model output is parsed tolerantly (`parsePlan`: raw JSON, fenced block,
+   or embedded object) and validated with Zod. If parsing fails or Azure is unavailable, a
+   deterministic `fallbackPlan` is used. The plan is streamed to the UI **before any tool runs** -
+   this is the "intelligently planning" perception.
+2. **Execute.** The runtime drives Azure GPT-4o tool-calling through the Vercel AI SDK
+   (`streamText` + the registry's tools wrapped via `tool()`, multi-step via
+   `stopWhen: stepCountIs(n)`). The SDK executes each tool's `execute`; the result (an
+   `AgentToolResult`, including any artifact) is the tool output fed back into the model's context.
+3. **Observe.** Each streamed part is reconciled to a plan step (`pickPendingStepForTool`; unmatched
+   calls append a dynamic step), statuses transition pending -> running -> completed/failed, artifacts
+   are collected, and the run ends with a summary + deterministic suggested next actions.
 
-(Wired in the agent-core phase against these contracts.) The Planner produces an editable
-`AgentPlan` of `AgentPlanStep`s; the Executor runs them through Azure GPT-4o tool-calling
-(`src/lib/ai/azure.ts` `streamChat`/`getChatModel`), streaming tokens and tool calls to the UI. Each
-step yields an `AgentToolResult` (and optional `AgentArtifact`) fed back into context. Conversations,
-messages, and runs persist to `agent_conversations` / `agent_messages` / `agent_runs` (jsonb plan,
-tool_calls, tool_results, artifacts).
+The AI SDK's wire format is adapted into a small internal `ModelStreamPart` union so the loop is
+decoupled from the provider and **injectable** for tests.
 
-### Uniform result + error shape
+### Streaming protocol: typed events over NDJSON
 
-`AgentToolResult` is always `{ ok, data?, error?, artifact? }`. Tools call the service layer / research
-engine, which throw typed `AppError`s (`src/lib/errors.ts`); the tool boundary converts failures into
-`ok: false` results. The system prompt (`src/lib/agent/prompts.ts`) instructs the Operator to plan
-first, use tools for real work, cite sources, fail safe, and label estimates.
+The runtime emits a discriminated `OperatorEvent` union (`src/lib/agent/events.ts`):
+`run-start | status | plan | step | message | tool-call | tool-result | artifact | suggestions |
+notice | run-finish | error`. `streamOperatorRun` serializes these as newline-delimited JSON into a
+`ReadableStream`. The client (`useOperator`) decodes incrementally (`decodeEvents`, tolerant of
+partial/garbled frames) and reduces them into render state: a transcript where each assistant turn
+carries its live plan and tool-call cards, plus suggestion chips and a live/demo badge. Owning the
+protocol (instead of the SDK's UI-message format) keeps the client decoupled and fully demoable.
 
-### One service layer for agent and cockpit
+### Graceful degradation (demo mode)
 
-Tools wrap the same `src/lib/services` functions the manual screens call. There is no separate
-"agent backend", so the agent and the cockpit cannot diverge.
+Mode is `live` when Azure is configured, else `demo`. In `demo` mode the runtime returns a **scripted
+stream that still executes the real built-in tools**, so the full loop (plan -> tool calls -> real
+artifacts -> summary) renders offline, clearly marked "demo" with a hint to set `AZURE_OPENAI_*`.
+Nothing crashes when credentials are absent.
+
+### Built-in tools (prove the loop now)
+
+`src/lib/agent/tools.ts` registers three safe, dependency-free tools so the loop works end to end
+today: `navigate` (returns a navigation artifact), `list_capabilities` (introspects the registry),
+and `summarize_context` (grounds the run in the conversation/campaign). Real module tools (research,
+creative, landing, analytics, campaign) are added in the `agent-tools` phase by registering more tools
+on the same registry - **the runtime never changes**.
+
+### Persistence (fail-safe, injectable)
+
+`src/lib/agent/persistence.ts` writes conversations, messages, and runs to
+`agent_conversations` / `agent_messages` / `agent_runs` and reads campaign-scoped history back. Every
+method is fail-safe (errors are logged, never thrown) so persistence can never break the live stream,
+and it is injected behind the `OperatorPersistence` interface (`noopPersistence` offline) so the
+runtime is unit-testable. (Note: the foundation types DB rows as `interface`s, which lack an implicit
+index signature and so resolve `SupabaseClient<Database>` tables to `never`; persistence re-maps the
+table shapes through a homomorphic mapped type purely for querying, with zero runtime effect.)
+
+### Endpoint
+
+`POST /api/operator/chat` validates input with Zod, authenticates via the Supabase server client
+(401 when configured but unauthenticated; an offline demo user with no persistence when Supabase is
+unset), and streams the run as `application/x-ndjson`. `GET /api/operator/chat` returns campaign-scoped
+history (the conversation list, or one conversation's messages) so the agent has memory across
+sessions. The endpoint runs on the Node.js runtime (server-only Azure + Supabase clients). _(Route
+contracts are consolidated in `Docs/api.md` in a later phase; recorded here per the agent-core scope.)_
+
+### One service layer for agent and cockpit (unchanged)
+
+Tools wrap the same `src/lib/services` / `src/lib/research` functions the manual screens call, so the
+agent and the cockpit cannot diverge.
 
 ## Consequences
 
-- **Positive:** Zod-validated boundaries make hallucinated arguments a recoverable, structured event.
-  Adding an agent capability = registering a tool. Streaming + visible plans create the "intelligently
-  planning/executing" perception. Persistence gives cross-session, campaign-scoped memory.
-- **Negative:** Every capability must be expressed as a tool with a schema and an artifact strategy;
-  the streaming tool-call UI is non-trivial. Mitigation: the registry + `defineTool` standardize the
-  authoring path, and the registry/validation behavior is unit-tested in the foundation
-  (`src/lib/agent/registry.test.ts`).
+- **Positive:** Zod-validated boundaries make hallucinated arguments a recoverable event. Adding a
+  capability = registering a tool; the runtime, streaming protocol, and UI are untouched. Streaming +
+  visible plans create the "planning/executing" perception. Demo mode keeps the hero surface fully
+  demoable with zero credentials. The injectable model stream + persistence make the loop unit-tested
+  offline (`runtime.test.ts`, `tools.test.ts`, `plan.test.ts`, `persistence.test.ts`, `events.test.ts`),
+  alongside the foundation's `registry.test.ts`.
+- **Negative:** Every capability must be expressed as a tool with a schema + artifact strategy, and
+  the streaming tool-call UI is non-trivial. Mitigation: `defineTool` + the registry standardize
+  authoring, and the runtime/protocol are covered by tests. A dedicated planning pass adds one extra
+  model call per run (in live mode) in exchange for a reliably structured, visible plan.

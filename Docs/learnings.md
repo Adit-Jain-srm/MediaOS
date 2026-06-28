@@ -74,3 +74,38 @@ Never repeat a class of mistake twice.
 - **Root cause:** `src/lib/env.ts` memoizes the parsed env in a module-level variable.
 - **Rule:** In env tests, `vi.stubEnv(...)` then `await import("./env")` and `vi.resetModules()` in
   `afterEach` so each case re-evaluates the module against fresh env.
+
+---
+
+## 2026-06-28 - Wave 2 (Research Engine + Operator agent) integration
+
+### supabase-js resolves every table to `never` when DB rows are `interface`s
+- **Problem:** With `SupabaseClient<Database>`, every `.from(table)` query typed Row/Insert/Update as
+  `never`, so each module added a homomorphic mapped-type "remap" cast to recover working table types.
+- **Root cause:** supabase-js's `GenericTable` requires `Row`/`Insert`/`Update` to extend
+  `Record<string, unknown>`. TypeScript gives **object-literal `type` aliases and mapped types an
+  implicit index signature but withholds it from `interface`s** (which stay open to declaration
+  merging). Because the `Row` shapes were `interface`s, no table satisfied `GenericTable`, the `public`
+  schema failed `GenericSchema`, and the client's `Schema` generic collapsed to `never`
+  (`Schema = Database['public'] extends GenericSchema ? ... : never`).
+- **Rule:** Author hand-written Supabase Row/Insert/Update shapes as **`type` aliases, never
+  `interface`s**. Keep `src/types/database.ts` as the single source of truth so no module needs a cast.
+
+### Fix the shared contract centrally when parallel workers converge on the same workaround
+- **Problem:** Both Wave 2 workers (research `store.ts`, agent `persistence.ts`) independently added the
+  *same* `Indexed<>/RemapTable<>` cast to dodge the `never` tables - duplicated, load-bearing type
+  gymnastics in two files.
+- **Root cause:** Each worker treated `database.ts` as frozen and patched locally instead of fixing the
+  shared contract.
+- **Rule:** When two independent modules invent the same workaround for a shared-contract defect, treat
+  that as the signal to fix the contract at integration and delete the local casts - don't let the
+  workaround calcify into N copies.
+
+### `next build` is the real integration gate - not tsc/lint/test
+- **Problem:** `tsc --noEmit`, `npm run lint`, and `npm test` were all green, yet none of them exercise
+  the React Server/Client boundary or route/RSC bundling that only `next build` enforces.
+- **Root cause:** Vitest runs in a node env, and tsc/eslint don't model the Server/Client boundary,
+  `"use client"`/`"use server"` directives, or edge/node runtime selection - a client component can
+  import server-only code (e.g. `next/headers`) and still pass all three checks.
+- **Rule:** Always run `npm run build` as the final gate before declaring integration done. A green
+  tsc/lint/test is necessary but not sufficient.

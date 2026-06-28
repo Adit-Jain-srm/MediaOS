@@ -1,9 +1,10 @@
 # Audience Research Intelligence Engine
 
 The research engine is MediaOS's moat: an OpenBB-inspired **"connect once, consume everywhere"**
-system that aggregates live web data into a single, normalized, citation-rich result. This page is
-the engineering reference - the contract, the moving parts, the Bright Data tiers, and a
-step-by-step guide to adding a new provider.
+system that aggregates live web data into a single, normalized, citation-rich result, then
+synthesizes it into personas and opportunities. This page is the engineering reference - the
+contract, the moving parts, the real Bright Data integration, graceful degradation, persistence,
+and a step-by-step guide to adding a new provider.
 
 Design rationale: [ADR 0002](./adr/0002-research-provider-abstraction.md). Source:
 `src/lib/research/`.
@@ -14,18 +15,25 @@ Design rationale: [ADR 0002](./adr/0002-research-provider-abstraction.md). Sourc
 
 | File | Role |
 |---|---|
-| `standard-models.ts` | The provider-agnostic contract. Zod schemas + inferred types for `AudienceSegment`, `CompetitorAd`, `TrendSignal`, `CommunityInsight`, `PainPoint`, `BuyingTrigger`, `SourceCitation`, `QueryParams`, the tagged `StandardModel` union, and the merged `ResearchResult`. |
+| `standard-models.ts` | The provider-agnostic contract. Zod schemas + inferred types for `AudienceSegment`, `CompetitorAd`, `TrendSignal`, `CommunityInsight`, `PainPoint`, `BuyingTrigger`, `Opportunity`, `SourceCitation`, `QueryParams`, the tagged `StandardModel` union, the merged `ResearchResult`, and the enriched `ResearchReport`. |
 | `provider.ts` | The `ResearchProvider` abstract class (the TET Fetcher) + `run()` wrapper. |
 | `registry.ts` | `ResearchProviderRegistry` + the shared `researchRegistry` singleton. |
-| `orchestrator.ts` | `runResearch()` (parallel execution + progressive streaming) and `mergeProviderResults()` (pure merge). |
-| `brightdata.ts` | `BrightDataClient` interface + degradable default + `get/setBrightDataClient()` injection hook. |
-| `analyzer.ts` | The GPT-4o analysis layer (`ResearchAnalyzer`): persona synthesis, pain-point extraction, buying-trigger detection, opportunity detection. |
+| `providers/*.ts` | The six built-in providers + `ensureProvidersRegistered()` bootstrap + shared pure `utils.ts`. |
+| `brightdata.ts` | Real HTTP `BrightDataClient` (SERP + Web Unlocker) with retry/timeout, read-through cache, and fixture fallback. |
+| `analyzer.ts` | The Azure GPT-4o `ResearchAnalyzer`: persona synthesis, pain-point ranking, buying-trigger detection, opportunity detection - zod-validated, with seeded fallback. |
+| `orchestrator.ts` | `runResearch()` (parallel + streaming), `mergeProviderResults()` (pure merge), and `runResearchPipeline()` (providers + analyzer → `ResearchReport`). |
+| `store.ts` | Persistence + project lifecycle. Supabase (RLS) when configured, in-memory fallback otherwise. |
+| `service.ts` | The application service used by server actions + the API route (create/list/get/run/persist). |
+| `fixtures/` | Seeded financial-newsletter vertical data (standard models + SERP/scrape) for fallback **and** tests. |
+
+UI lives in `src/components/research/*` and `src/app/(dashboard)/research/*`; the streaming endpoint
+is `src/app/api/research/run/route.ts`.
 
 ---
 
 ## 2. The provider contract (TET)
 
-Every source implements the same **Transform -> Extract -> Transform** pipeline:
+Every source implements the same **Transform → Extract → Transform** pipeline:
 
 ```ts
 abstract class ResearchProvider<Q extends ProviderQuery, D extends StandardModel> {
@@ -48,22 +56,26 @@ abstract class ResearchProvider<Q extends ProviderQuery, D extends StandardModel
 `{ provider, items: [], sources: [], status: "failed", error }`, so one bad source can't break an
 orchestrated run.
 
+> TET typing note: declare each provider's query shape with a `type` alias, not an `interface`.
+> `interface`s lack an implicit index signature and fail the `Q extends ProviderQuery`
+> (`Record<string, unknown>`) constraint.
+
 ### Standard models carry citations
 
 Every emitted item is a tagged `StandardModel` - `{ kind: "pain_point", data: PainPoint }`, etc. -
 and every `data` carries `sources: SourceCitation[]`. This is what lets the UI and the Operator
-attribute each claim to real data.
+attribute each claim to a real source.
 
 ---
 
-## 3. Registry + orchestrator
+## 3. Registry, orchestrator, and the full pipeline
 
 ```ts
-// Register once (typically at module load in the research-providers phase):
-researchRegistry.register(new SearchIntentProvider());
+// Register the six built-ins (idempotent - safe to call per request):
+ensureProvidersRegistered();
 
-// Run everything available, streaming results as they return:
-const result = await runResearch(
+// Run providers in parallel, stream each result, then synthesize:
+const report = await runResearchPipeline(
   { query: "near-retirees worried about inflation", region: "us", limit: 25 },
   { onProviderResult: (r) => pushToUI(r) },
 );
@@ -74,139 +86,217 @@ const result = await runResearch(
   progressive streaming, then merges.
 - `mergeProviderResults(params, results)` is a **pure** function that buckets tagged items into the
   aggregated `ResearchResult` (segments, competitorAds, trends, communityInsights, painPoints,
-  buyingTriggers), concatenates `sources`, and records a `providerRuns` summary. Being pure, it is
-  trivially unit-testable with fixtures - no network.
+  buyingTriggers), concatenates `sources`, and records a `providerRuns` summary - trivially
+  unit-testable with fixtures.
+- `runResearchPipeline(params, options)` = `ensureProvidersRegistered()` → `runResearch()` → the
+  `ResearchAnalyzer` (personas, ranked pains, triggers, opportunities) → a citation-rich
+  `ResearchReport`. It never throws for missing credentials.
 
 ---
 
-## 4. Bright Data tiers
+## 4. Bright Data HTTP integration (real, Vercel-safe)
 
-`brightdata.ts` exposes a `BrightDataClient` interface; providers call it, never the network
-directly. `getBrightDataClient()` returns a degradable default; `setBrightDataClient()` injects a
-real or fixture implementation (used by tests and seeders - **no live calls in CI**).
+The deployed app runs on Vercel and **cannot** use Cursor's MCP, so `brightdata.ts` is a real HTTP
+client to Bright Data's API at `POST https://api.brightdata.com/request`, authorized with
+`BRIGHTDATA_API_TOKEN`.
 
-| Tier | Methods | Status |
+| Method | Bright Data product | How |
 |---|---|---|
-| **Free** (always available when a token is set) | `searchEngine`, `searchEngineBatch`, `scrapeAsMarkdown`, `scrapeBatch` | Verified working |
-| **Pro** (active account required) | `webData(dataset, input)` for structured platform datasets (`reddit_posts`, `x_posts`, ...) | Degrades: returns `null` when unavailable so callers fall back to search + scrape |
+| `searchEngine` / `searchEngineBatch` | SERP API / Web Unlocker | Builds a search-engine URL with `brd_json=1` (e.g. `https://www.google.com/search?q=…&brd_json=1&gl=us`) and parses the returned SERP JSON (`organic`, `related`, `people_also_ask`). |
+| `scrapeAsMarkdown` / `scrapeBatch` | Web Unlocker | Sends `{ zone, url, format: "raw", data_format: "markdown" }`. |
+| `webData(dataset, …)` | Pro structured datasets | Returns `null` by default (Pro off) so callers degrade to search + scrape. |
 
-`isProAvailable()` defaults to `false`, so the orchestrator uses the verified free-tier path unless a
-real client reports Pro. Pro-gated providers override `tier = "pro"` and `isAvailable()` so the
-registry's `available()` filters them out when Pro is off.
+**Zones** (read from the environment, with sensible defaults so it boots un-configured):
+`BRIGHTDATA_WEB_UNLOCKER_ZONE` (default `mcp_unlocker`) and `BRIGHTDATA_SERP_ZONE` (defaults to the
+unlocker zone).
+
+**Resilience (every call):**
+
+1. **Retry + timeout** via `@/lib/resilience` (`withRetry`, exponential backoff, 25s budget).
+2. **Read-through cache** (in-memory, TTL + size-bounded) keyed by engine/country/query and by URL,
+   so the same fetch in a session is not repeated.
+3. **Graceful degradation** - on a missing/invalid token, a network error, a non-200, a parse
+   failure, *or an empty live result set*, the client logs a structured warning and returns **seeded
+   fixture data**. It **never throws to the UI**.
+
+The architecture is two layers: `HttpBrightDataClient` (faithful HTTP, throws typed errors) wrapped
+by `ResilientBrightDataClient` (cache + fixture fallback, never throws). `getBrightDataClient()`
+returns the resilient client; `setBrightDataClient()` injects a fake for tests/seeders (no live calls
+in CI).
 
 ---
 
-## 5. How to add a new provider (step by step)
+## 5. The six providers
 
-Adding a data source is a localized change - the core, orchestrator, merge, and UI never change.
+Each extends `ResearchProvider`, normalizes to the standard models, and is registered by
+`ensureProvidersRegistered()`.
 
-### Step 1 - implement the TET pipeline
+| Provider (`name`) | Bright Data tools | Yields |
+|---|---|---|
+| Competitor Ad Research (`competitor_ads`) | `search_engine` + `scrape_as_markdown` (Meta Ad Library) | `competitor_ad` - advertiser, copy, classified hooks |
+| Search Intent (`search_intent`) | `search_engine_batch` (related + people-also-ask) | `trend_signal` (rising demand) + `buying_trigger` (intent questions) |
+| Reddit & Community (`reddit_community`) | `web_data_reddit_posts` (Pro) → `search_engine` + `scrape_as_markdown` | `community_insight` + `pain_point` (audience's own words) |
+| News & Industry (`news_industry`) | `search_engine_batch` (+ scrape) | `trend_signal` (market shifts, headlines) |
+| Social Listening (`social_listening`) | `web_data_x_posts`/`tiktok_posts` (Pro) → `search_engine` | `community_insight` + `trend_signal` (formats, share of voice) |
+| Web Intelligence (`web_intel`) | `search_engine` + `scrape_batch` | `competitor_ad` (positioning) + `buying_trigger` (lead-magnet CTAs) |
+
+Pro `web_data_*` tools are attempted first where relevant and **degrade to search + scrape** when Pro
+is unavailable (the verified free-tier path). Hook classification, platform inference, sentiment, and
+markdown extraction live in pure, unit-tested helpers (`providers/utils.ts`).
+
+---
+
+## 6. AI analysis layer (Azure GPT-4o)
+
+`AiResearchAnalyzer` (`analyzer.ts`) turns the merged data into actionable intelligence:
+
+- `synthesizePersonas` - rich `AudienceSegment`s (demographics, psychographics, behaviors, platform
+  prefs) grounded in the data, via `generateChat` with a strict JSON system prompt.
+- `extractPainPoints` / `detectBuyingTriggers` - ranked + deduped from the cited provider output.
+- `detectOpportunities` - high-pain/low-competition, pre-saturation trends, messaging gaps.
+
+**Trust + resilience:** every model response is JSON-extracted (`extractJsonBlock`) and **zod-validated**
+before it is trusted; invalid output falls back rather than propagating. The model is **not** asked
+to invent citations - the analyzer attaches real provider `SourceCitation`s to each synthesized
+insight. When Azure is unconfigured (or a call/parse fails), the analyzer returns **high-quality
+seeded output derived from the providers' raw data** so the product still demos. It is injectable via
+`get/setResearchAnalyzer`.
+
+---
+
+## 7. Persistence + project lifecycle
+
+`store.ts` exposes a `ResearchStore` (create/list/get project, save/get report, set status, delete)
+with two implementations, chosen at runtime by `getResearchStore()`:
+
+- **Supabase (RLS)** when configured and a user is signed in. `saveReport` writes the normalized rows
+  (`audience_personas`, `competitor_ads`, `trend_signals`, `community_insights`) plus citations into
+  `research_sources`, and a single lossless **snapshot row** (`provider = "_snapshot"`,
+  `raw_data = the full report`) so a reload restores the report exactly. Re-runs are idempotent
+  (child rows are cleared first).
+- **In-memory** otherwise, so the engine fully works with **zero credentials**. It seeds one demo
+  project ("Retirement Income Weekly") from the fixtures so `/research` is never empty.
+
+Persistence is always **best-effort**: a write failure is logged and degraded, never thrown to the
+UI. `QueryParams` is stored in the project's `query` text column as JSON to preserve re-run context.
+
+> Supabase typing gotcha: the hand-authored `interface` row types in `@/types/database` lack an
+> implicit index signature and make `SupabaseClient<Database>` resolve every table to `never`. The
+> store re-maps the table types through a homomorphic mapped type and casts once (mirroring the agent
+> module). Structurally identical, zero runtime effect.
+
+---
+
+## 8. Server actions + streaming API
+
+- **Server actions** (`src/app/(dashboard)/research/actions.ts`): `createResearchProjectAction`,
+  `deleteResearchProjectAction`, and a non-streaming `runResearchProjectAction` fallback. All inputs
+  are zod-validated.
+- **Streaming run** (`src/app/api/research/run/route.ts`, `POST`): returns **NDJSON** so the
+  workspace renders progressively. Events: `start`, `provider` (one per provider as it completes),
+  `report` (the synthesized report), `done`, and `error`. Persistence happens server-side. The route
+  never throws to the client - failures are emitted as `error` events.
+
+The workspace (`research-workspace.tsx`) consumes the stream, updates the provider status strip live,
+and falls back to the server action if streaming is unavailable.
+
+---
+
+## 9. Seeded fixtures & graceful degradation
+
+`fixtures/` contains a realistic **financial-newsletter** vertical ("retirement income newsletter
+targeting near-retirees worried about inflation"): competitor ads in DR style, Reddit pain points in
+the audience's own words, rising trends, buying triggers, personas, and opportunities - plus
+Bright-Data-shaped SERP/scrape responses routed by intent keywords (`matchFixtureSearch` /
+`matchFixtureScrape`). They serve two roles:
+
+1. **Live-call fallback** at three layers - Bright Data (no/failed token → fixture SERP/scrape, run
+   through the *real* `transformData`), Azure (no/failed key → seeded/derived personas), and Supabase
+   (unconfigured → in-memory store). The engine returns a compelling report with **no credentials**.
+2. **Deterministic tests** - providers, the merge, the pipeline, and the analyzer are all exercised
+   offline.
+
+`buildSeededReport()` assembles the full `ResearchReport` from the curated fixtures.
+
+---
+
+## 10. How to add a new provider
+
+Adding a data source is a localized change - the core, orchestrator, merge, persistence, and UI never
+change.
+
+1. **Implement the TET pipeline** in `src/lib/research/providers/my-source.ts`:
 
 ```ts
-// src/lib/research/providers/search-intent.ts
-import { getBrightDataClient } from "@/lib/research/brightdata";
-import { ResearchProvider, type NormalizedOutput, type ProviderRunContext } from "@/lib/research/provider";
-import type { QueryParams, SourceCitation, StandardModel, StandardModelKind } from "@/lib/research/standard-models";
+import { getBrightDataClient } from "../brightdata";
+import { ResearchProvider, type NormalizedOutput, type ProviderRunContext } from "../provider";
+import type { QueryParams, SourceCitation, StandardModel, StandardModelKind } from "../standard-models";
+import { toCitation } from "./utils";
 
-interface SearchIntentQuery {
-  terms: string[];
-  country: string;
-}
+type MyQuery = { queries: { query: string; country: string }[] }; // use `type`, not `interface`
 
-export class SearchIntentProvider extends ResearchProvider<SearchIntentQuery> {
-  readonly name = "search_intent";
-  readonly title = "Search Intent";
-  readonly description = "Rising topics and demand signals from SERPs.";
+export class MySourceProvider extends ResearchProvider<MyQuery> {
+  readonly name = "my_source";
+  readonly title = "My Source";
+  readonly description = "What it yields.";
   readonly produces: ReadonlyArray<StandardModelKind> = ["trend_signal"];
-  // free tier is the default; no override needed.
 
-  // T - map provider-agnostic params into this provider's query shape.
-  transformQuery(params: QueryParams): SearchIntentQuery {
-    return {
-      terms: [params.query, ...(params.competitors ?? [])],
-      country: params.region ?? "us",
-    };
+  transformQuery(params: QueryParams): MyQuery {
+    return { queries: [{ query: params.query, country: params.region ?? "us" }] };
   }
-
-  // E - fetch raw data via the injected Bright Data client.
-  async extractData(query: SearchIntentQuery, ctx: ProviderRunContext): Promise<Record<string, unknown>> {
+  async extractData(query: MyQuery, ctx: ProviderRunContext) {
     const client = getBrightDataClient();
-    const responses = await client.searchEngineBatch(
-      query.terms.map((q) => ({ query: q, country: query.country })),
-      { signal: ctx.signal },
-    );
-    return { responses };
+    return { responses: await client.searchEngineBatch(query.queries, { signal: ctx.signal }) };
   }
-
-  // T - normalize raw data into standard models + citations.
   transformData(raw: Record<string, unknown>, params: QueryParams): NormalizedOutput {
-    const responses = (raw.responses ?? []) as { query: string; results: { url: string; title?: string }[] }[];
+    const responses = (raw.responses as { results: { url: string; title?: string }[] }[]) ?? [];
     const items: StandardModel[] = [];
     const sources: SourceCitation[] = [];
-
     for (const res of responses) {
-      const citations: SourceCitation[] = res.results.slice(0, params.limit ?? 10).map((r) => ({
-        provider: this.name,
-        url: r.url,
-        title: r.title,
-        fetchedAt: new Date().toISOString(),
-      }));
-      sources.push(...citations);
-      items.push({
-        kind: "trend_signal",
-        data: { topic: res.query, timeSeries: [], sources: citations },
-      });
+      for (const r of res.results.slice(0, params.limit ?? 10)) {
+        const citation = toCitation(this.name, { url: r.url, title: r.title });
+        sources.push(citation);
+        items.push({ kind: "trend_signal", data: { topic: r.title ?? r.url, timeSeries: [], sources: [citation] } });
+      }
     }
-
     return { items, sources };
   }
 }
 ```
 
-### Step 2 - register it
+2. **Register it** by adding it to `createBuiltInProviders()` in `providers/index.ts` (picked up by
+   `ensureProvidersRegistered()`).
+3. **Pro-only sources**: set `readonly tier = "pro"` and override `isAvailable()` until Pro is
+   confirmed; gate the `web_data_*` call inside `extractData` with a `null` → search/scrape fallback.
+4. **Add fixtures + a test**: extend the fixture matchers for your intent keywords and add a
+   `transformData` test using `brightDataFixtures` (no network).
 
-```ts
-// src/lib/research/providers/index.ts (the research-providers phase)
-import { researchRegistry } from "@/lib/research/registry";
-import { SearchIntentProvider } from "./search-intent";
-
-researchRegistry.register(new SearchIntentProvider());
-```
-
-### Step 3 - (Pro-only sources) gate availability
-
-```ts
-export class RedditProProvider extends ResearchProvider {
-  readonly tier = "pro" as const;
-  override isAvailable(): boolean {
-    return false; // flip on once Pro `web_data_*` is confirmed active
-  }
-  // ...TET using getBrightDataClient().webData("reddit_posts", ...)
-}
-```
-
-### Step 4 - test it with fixtures (no network)
-
-```ts
-import { setBrightDataClient } from "@/lib/research/brightdata";
-
-setBrightDataClient(fakeClientReturningFixtures);
-const result = await new SearchIntentProvider().run({ query: "inflation" });
-expect(result.status).toBe("success");
-expect(result.items[0].kind).toBe("trend_signal");
-```
-
-That's it. The orchestrator picks the provider up via `registry.available()`, runs it in parallel
-with the others, and `mergeProviderResults` files its `trend_signal` items into
-`ResearchResult.trends` with their citations.
+The orchestrator picks the provider up via `registry.available()`, runs it in parallel, and
+`mergeProviderResults` files its items into the right `ResearchResult` bucket with their citations.
 
 ---
 
-## 6. AI analysis layer
+## 11. Environment
 
-After providers return normalized data, the `ResearchAnalyzer` (`analyzer.ts`, GPT-4o, wired in the
-research-ai phase) turns it into actionable intelligence: `synthesizePersonas`, `extractPainPoints`,
-`detectBuyingTriggers`, `detectOpportunities` (high-pain/low-competition, pre-saturation trends,
-messaging gaps, audience expansion) - each carrying citations. Like Bright Data, it is injectable
-(`get/setResearchAnalyzer`) so tests use a deterministic stub. The current default is a stub that
-throws `NotImplementedError` until the real analyzer is installed.
+| Variable | Purpose | Missing → behavior |
+|---|---|---|
+| `BRIGHTDATA_API_TOKEN` | Bright Data API auth | Serve seeded SERP/scrape fixtures |
+| `BRIGHTDATA_WEB_UNLOCKER_ZONE` | Web Unlocker zone (default `mcp_unlocker`) | Use default |
+| `BRIGHTDATA_SERP_ZONE` | SERP zone (default = unlocker zone) | Use unlocker zone |
+| `AZURE_OPENAI_*` | GPT-4o for synthesis | Seeded/derived personas + heuristic opportunities |
+| `NEXT_PUBLIC_SUPABASE_*` / `SUPABASE_SERVICE_ROLE_KEY` | Persistence (RLS) | In-memory store (demo-safe) |
+
+---
+
+## 12. Testing
+
+Vitest, offline and deterministic (no network, mocked AI and Bright Data):
+
+- `providers/utils.test.ts` - hook classification, platform/creative inference, sentiment, markdown extraction.
+- `providers/providers.test.ts` - each provider's `transformQuery` + `transformData` on fixtures, and `run()` end-to-end against the fixture client.
+- `orchestrator.test.ts` - pure merge + `runResearchPipeline` integration with a deterministic analyzer.
+- `analyzer.test.ts` - persona synthesis with a **mocked** `generateChat` (valid/garbage/throw) and the no-Azure fallback; `extractJsonBlock` edges.
+- `brightdata.test.ts` - SERP JSON parsing, fixture fallback (never throws), and read-through caching.
+- `standard-models.test.ts` - zod schema defaults and edge cases.
+
+Run: `npm test` (or `npx vitest run src/lib/research`).
