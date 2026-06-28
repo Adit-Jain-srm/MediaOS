@@ -53,13 +53,6 @@ export function AgentRail({ children }: AgentRailProps) {
           />
         )}
       </div>
-
-      <div className="border-t border-border p-3">
-        <div className="flex items-center gap-2 rounded-lg border border-input bg-input/30 px-2.5 py-2 text-sm text-muted-foreground">
-          <span className="flex-1">Ask the Operator...</span>
-          <kbd className="rounded border border-border bg-muted px-1.5 font-mono text-[10px]">soon</kbd>
-        </div>
-      </div>
     </aside>
   );
 }
