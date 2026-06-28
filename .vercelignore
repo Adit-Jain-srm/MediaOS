@@ -1,0 +1,6 @@
+# The OpenBB reference repo (1000+ Python files) must never be uploaded to Vercel.
+Reference-repo/
+
+# Local docs and planning material are not needed in the deployment.
+Docs/
+README.project-notes.md
