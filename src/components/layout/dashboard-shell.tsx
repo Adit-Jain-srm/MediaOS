@@ -6,6 +6,7 @@ import { Sidebar } from "./sidebar";
 import { TopBar } from "./top-bar";
 import { AgentRail } from "./agent-rail";
 import { CommandPalette } from "./command-palette";
+import { OperatorRail } from "@/components/agent/operator-rail";
 
 /**
  * Dashboard chrome: left sidebar, top bar, scrollable main, and the persistent
@@ -19,7 +20,9 @@ export function DashboardShell({ children }: { children: ReactNode }) {
         <TopBar />
         <main className="min-h-0 flex-1 overflow-y-auto">{children}</main>
       </div>
-      <AgentRail />
+      <AgentRail>
+        <OperatorRail />
+      </AgentRail>
       <CommandPalette />
     </div>
   );
