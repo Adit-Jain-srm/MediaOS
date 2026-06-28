@@ -31,6 +31,9 @@ const envSchema = z.object({
   // zone (when set) powers search - otherwise search reuses the unlocker zone.
   BRIGHTDATA_WEB_UNLOCKER_ZONE: z.string().default("mcp_unlocker"),
   BRIGHTDATA_SERP_ZONE: z.string().default(""),
+  // Scraping Browser (Puppeteer/Playwright) WSS endpoint. Optional - when set it
+  // enables interactive / JS-heavy scraping via a remote Bright Data browser.
+  BRIGHTDATA_BROWSER_WS: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -58,6 +61,7 @@ export function getEnv(): Env {
     BRIGHTDATA_API_TOKEN: process.env.BRIGHTDATA_API_TOKEN,
     BRIGHTDATA_WEB_UNLOCKER_ZONE: process.env.BRIGHTDATA_WEB_UNLOCKER_ZONE,
     BRIGHTDATA_SERP_ZONE: process.env.BRIGHTDATA_SERP_ZONE,
+    BRIGHTDATA_BROWSER_WS: process.env.BRIGHTDATA_BROWSER_WS,
   });
 
   cached = parsed.success ? parsed.data : envSchema.parse({});
