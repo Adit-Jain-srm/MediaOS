@@ -1,0 +1,26 @@
+"use client";
+
+import type { ReactNode } from "react";
+
+import { Sidebar } from "./sidebar";
+import { TopBar } from "./top-bar";
+import { AgentRail } from "./agent-rail";
+import { CommandPalette } from "./command-palette";
+
+/**
+ * Dashboard chrome: left sidebar, top bar, scrollable main, and the persistent
+ * Operator rail. Layout reacts to the UI store (collapse / rail visibility).
+ */
+export function DashboardShell({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex h-dvh w-full overflow-hidden bg-background text-foreground">
+      <Sidebar />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <TopBar />
+        <main className="min-h-0 flex-1 overflow-y-auto">{children}</main>
+      </div>
+      <AgentRail />
+      <CommandPalette />
+    </div>
+  );
+}
