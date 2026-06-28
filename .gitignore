@@ -43,6 +43,9 @@ yarn-error.log*
 # local MCP server config contains live API tokens - never commit
 .cursor/mcp.json
 
+# volatile agent hook state (rewritten every run - not project source)
+.cursor/hooks/state/
+
 # vercel
 .vercel
 
