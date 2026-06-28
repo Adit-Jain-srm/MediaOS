@@ -1,23 +1,51 @@
 import type { Metadata } from "next";
-import { ImagesSquare } from "@phosphor-icons/react/dist/ssr";
 
-import { PageHeader } from "@/components/layout/page-header";
-import { EmptyState } from "@/components/ui/states";
+import { CreativeStudio } from "@/components/creative/creative-studio";
+import { getServiceConfigStatus } from "@/lib/env";
+import { DEMO_CAMPAIGN_ID, DEMO_CAMPAIGN_NAME } from "@/lib/creative/fixtures";
+import { getResearchContextForCampaign } from "@/lib/creative/research-bridge";
+import { getStudioData } from "@/lib/creative/studio";
+import { campaignService } from "@/lib/services";
 
 export const metadata: Metadata = { title: "Creatives" };
 
-export default function CreativesPage() {
+// Per-request store (Supabase RLS or seeded in-memory) - never statically cache.
+export const dynamic = "force-dynamic";
+
+/** Campaign options: real campaigns when available, else the seeded demo campaign. */
+async function listCampaignOptions(): Promise<{ id: string; name: string }[]> {
+  const demo = { id: DEMO_CAMPAIGN_ID, name: DEMO_CAMPAIGN_NAME };
+  try {
+    const campaigns = await campaignService.list();
+    const options = campaigns.map((c) => ({ id: c.id, name: c.name }));
+    return options.length > 0 ? options : [demo];
+  } catch {
+    // Campaign module is built in parallel; degrade to the demo campaign.
+    return [demo];
+  }
+}
+
+export default async function CreativesPage({ searchParams }: { searchParams: Promise<{ campaign?: string }> }) {
+  const { campaign } = await searchParams;
+  const campaigns = await listCampaignOptions();
+  const active = campaigns.find((c) => c.id === campaign) ?? campaigns[0];
+
+  const config = getServiceConfigStatus();
+  const [data, research] = await Promise.all([
+    getStudioData(active.id),
+    getResearchContextForCampaign(active.id),
+  ]);
+
   return (
-    <div className="mx-auto max-w-6xl space-y-6 p-4 md:p-6">
-      <PageHeader
-        title="Creatives"
-        description="Platform-ready ad copy and visuals, grounded in the exact pain points and language the research engine surfaced."
-      />
-      <EmptyState
-        icon={<ImagesSquare weight="duotone" className="size-5" />}
-        title="No creatives yet"
-        description="Streaming copy generation, hook analysis, and GPT-Image visuals at the right aspect ratios will land here."
-      />
-    </div>
+    <CreativeStudio
+      key={active.id}
+      campaignId={active.id}
+      campaignName={active.name}
+      campaigns={campaigns}
+      azureConfigured={config.azure}
+      defaultPainPoints={research.painPoints}
+      initialCreatives={data.creatives}
+      initialBrandVoices={data.brandVoices}
+    />
   );
 }
