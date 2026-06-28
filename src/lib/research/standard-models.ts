@@ -186,6 +186,35 @@ export type StandardModel = z.infer<typeof standardModelSchema>;
 export type StandardModelKind = StandardModel["kind"];
 
 /* -------------------------------------------------------------------------- */
+/* Opportunities (AI-detected, citation-backed)                               */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * High-leverage openings the analyzer surfaces from the merged data:
+ * - `high_pain_low_competition`: strong, repeated pain with few competitors addressing it.
+ * - `pre_saturation_trend`: a rising topic before the market crowds in.
+ * - `messaging_gap`: angle/voice the audience wants but competitors are not using.
+ * - `audience_expansion`: an adjacent segment the same product can credibly serve.
+ */
+export const OPPORTUNITY_TYPES = [
+  "high_pain_low_competition",
+  "pre_saturation_trend",
+  "messaging_gap",
+  "audience_expansion",
+] as const;
+export const opportunityTypeSchema = z.enum(OPPORTUNITY_TYPES);
+export type OpportunityType = z.infer<typeof opportunityTypeSchema>;
+
+export const opportunitySchema = z.object({
+  title: z.string(),
+  rationale: z.string(),
+  type: opportunityTypeSchema,
+  confidence: z.number().min(0).max(1).optional(),
+  sources: z.array(sourceCitationSchema).default([]),
+});
+export type Opportunity = z.infer<typeof opportunitySchema>;
+
+/* -------------------------------------------------------------------------- */
 /* Provider + aggregated results                                              */
 /* -------------------------------------------------------------------------- */
 
@@ -224,3 +253,14 @@ export const researchResultSchema = z.object({
   generatedAt: z.string().optional(),
 });
 export type ResearchResult = z.infer<typeof researchResultSchema>;
+
+/**
+ * The full research deliverable: the merged provider `ResearchResult` enriched by
+ * the AI analyzer with synthesized personas (in `segments`) and detected
+ * `opportunities`. This is what the workspace renders and the orchestrator
+ * persists.
+ */
+export const researchReportSchema = researchResultSchema.extend({
+  opportunities: z.array(opportunitySchema).default([]),
+});
+export type ResearchReport = z.infer<typeof researchReportSchema>;

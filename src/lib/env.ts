@@ -27,6 +27,10 @@ const envSchema = z.object({
 
   // Bright Data MCP
   BRIGHTDATA_API_TOKEN: z.string().default(""),
+  // Bright Data zones (optional). Web Unlocker zone powers scraping; the SERP
+  // zone (when set) powers search - otherwise search reuses the unlocker zone.
+  BRIGHTDATA_WEB_UNLOCKER_ZONE: z.string().default("mcp_unlocker"),
+  BRIGHTDATA_SERP_ZONE: z.string().default(""),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -52,6 +56,8 @@ export function getEnv(): Env {
     AZURE_OPENAI_IMAGE_DEPLOYMENT: process.env.AZURE_OPENAI_IMAGE_DEPLOYMENT,
     AZURE_OPENAI_API_VERSION: process.env.AZURE_OPENAI_API_VERSION,
     BRIGHTDATA_API_TOKEN: process.env.BRIGHTDATA_API_TOKEN,
+    BRIGHTDATA_WEB_UNLOCKER_ZONE: process.env.BRIGHTDATA_WEB_UNLOCKER_ZONE,
+    BRIGHTDATA_SERP_ZONE: process.env.BRIGHTDATA_SERP_ZONE,
   });
 
   cached = parsed.success ? parsed.data : envSchema.parse({});

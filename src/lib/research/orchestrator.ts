@@ -1,6 +1,14 @@
+import { getResearchAnalyzer } from "./analyzer";
+import { ensureProvidersRegistered } from "./providers";
 import type { ResearchProvider } from "./provider";
 import { researchRegistry } from "./registry";
-import type { ProviderResult, QueryParams, ResearchResult } from "./standard-models";
+import {
+  researchReportSchema,
+  type ProviderResult,
+  type QueryParams,
+  type ResearchReport,
+  type ResearchResult,
+} from "./standard-models";
 
 /**
  * Runs research providers in parallel and merges their normalized output into a
@@ -36,6 +44,40 @@ export async function runResearch(params: QueryParams, options: OrchestratorOpti
   );
 
   return mergeProviderResults(params, results);
+}
+
+/**
+ * The full research pipeline: register built-in providers, run them in parallel
+ * (streaming each result), then layer on the AI analyzer (personas, ranked pain
+ * points, buying triggers, opportunities). Returns the citation-rich
+ * `ResearchReport` the workspace renders and the store persists.
+ *
+ * Never throws for missing credentials: providers degrade to seeded fixtures and
+ * the analyzer degrades to seeded/derived output, so this always resolves to a
+ * compelling report.
+ */
+export async function runResearchPipeline(params: QueryParams, options: OrchestratorOptions = {}): Promise<ResearchReport> {
+  ensureProvidersRegistered();
+
+  const result = await runResearch(params, options);
+  const analyzer = getResearchAnalyzer();
+  const analyzeInput = { params, result, signal: options.signal };
+
+  const [segments, painPoints, buyingTriggers, opportunities] = await Promise.all([
+    analyzer.synthesizePersonas(analyzeInput),
+    analyzer.extractPainPoints(analyzeInput),
+    analyzer.detectBuyingTriggers(analyzeInput),
+    analyzer.detectOpportunities(analyzeInput),
+  ]);
+
+  return researchReportSchema.parse({
+    ...result,
+    segments,
+    painPoints,
+    buyingTriggers,
+    opportunities,
+    generatedAt: new Date().toISOString(),
+  });
 }
 
 /** Pure merge of provider results into the aggregated standard-model buckets. */
