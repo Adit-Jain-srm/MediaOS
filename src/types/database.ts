@@ -10,6 +10,14 @@
  * - `Insert` makes columns with DB defaults or NULLability optional.
  * - `Update` is `Partial<Row>` (any column may be patched).
  *
+ * Row/Insert/Update shapes are declared as `type` aliases (not `interface`s) on
+ * purpose: supabase-js's `GenericTable` constraint requires each shape to extend
+ * `Record<string, unknown>`. TypeScript gives object-literal type aliases and
+ * mapped types an implicit index signature but withholds it from interfaces
+ * (which stay open to declaration merging). Using `interface` here makes the
+ * whole `public` schema fail `GenericSchema`, so `SupabaseClient<Database>`
+ * resolves every table to `never`. Keep these as `type` aliases.
+ *
  * Keep this file in lockstep with the SQL migrations.
  */
 
@@ -19,7 +27,7 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 /* Agent                                                                      */
 /* -------------------------------------------------------------------------- */
 
-export interface AgentConversationRow {
+export type AgentConversationRow = {
   id: string;
   user_id: string;
   campaign_id: string | null;
@@ -27,7 +35,7 @@ export interface AgentConversationRow {
   status: string;
   created_at: string;
   updated_at: string;
-}
+};
 export type AgentConversationInsert = {
   id?: string;
   user_id: string;
@@ -39,7 +47,7 @@ export type AgentConversationInsert = {
 };
 export type AgentConversationUpdate = Partial<AgentConversationRow>;
 
-export interface AgentMessageRow {
+export type AgentMessageRow = {
   id: string;
   conversation_id: string;
   user_id: string;
@@ -48,7 +56,7 @@ export interface AgentMessageRow {
   tool_calls: Json | null;
   tool_results: Json | null;
   created_at: string;
-}
+};
 export type AgentMessageInsert = {
   id?: string;
   conversation_id: string;
@@ -61,7 +69,7 @@ export type AgentMessageInsert = {
 };
 export type AgentMessageUpdate = Partial<AgentMessageRow>;
 
-export interface AgentRunRow {
+export type AgentRunRow = {
   id: string;
   conversation_id: string;
   user_id: string;
@@ -71,7 +79,7 @@ export interface AgentRunRow {
   artifacts: Json;
   created_at: string;
   updated_at: string;
-}
+};
 export type AgentRunInsert = {
   id?: string;
   conversation_id: string;
@@ -89,7 +97,7 @@ export type AgentRunUpdate = Partial<AgentRunRow>;
 /* Research (USP)                                                             */
 /* -------------------------------------------------------------------------- */
 
-export interface ResearchProjectRow {
+export type ResearchProjectRow = {
   id: string;
   user_id: string;
   campaign_id: string | null;
@@ -98,7 +106,7 @@ export interface ResearchProjectRow {
   status: string;
   created_at: string;
   updated_at: string;
-}
+};
 export type ResearchProjectInsert = {
   id?: string;
   user_id: string;
@@ -111,7 +119,7 @@ export type ResearchProjectInsert = {
 };
 export type ResearchProjectUpdate = Partial<ResearchProjectRow>;
 
-export interface AudiencePersonaRow {
+export type AudiencePersonaRow = {
   id: string;
   project_id: string;
   user_id: string;
@@ -126,7 +134,7 @@ export interface AudiencePersonaRow {
   sources: Json;
   created_at: string;
   updated_at: string;
-}
+};
 export type AudiencePersonaInsert = {
   id?: string;
   project_id: string;
@@ -145,7 +153,7 @@ export type AudiencePersonaInsert = {
 };
 export type AudiencePersonaUpdate = Partial<AudiencePersonaRow>;
 
-export interface CompetitorAdRow {
+export type CompetitorAdRow = {
   id: string;
   project_id: string;
   user_id: string;
@@ -158,7 +166,7 @@ export interface CompetitorAdRow {
   date_range: string | null;
   image_url: string | null;
   created_at: string;
-}
+};
 export type CompetitorAdInsert = {
   id?: string;
   project_id: string;
@@ -175,7 +183,7 @@ export type CompetitorAdInsert = {
 };
 export type CompetitorAdUpdate = Partial<CompetitorAdRow>;
 
-export interface TrendSignalRow {
+export type TrendSignalRow = {
   id: string;
   project_id: string;
   user_id: string;
@@ -187,7 +195,7 @@ export interface TrendSignalRow {
   time_series: Json;
   detected_at: string;
   created_at: string;
-}
+};
 export type TrendSignalInsert = {
   id?: string;
   project_id: string;
@@ -203,7 +211,7 @@ export type TrendSignalInsert = {
 };
 export type TrendSignalUpdate = Partial<TrendSignalRow>;
 
-export interface CommunityInsightRow {
+export type CommunityInsightRow = {
   id: string;
   project_id: string;
   user_id: string;
@@ -215,7 +223,7 @@ export interface CommunityInsightRow {
   upvotes: number | null;
   posted_at: string | null;
   created_at: string;
-}
+};
 export type CommunityInsightInsert = {
   id?: string;
   project_id: string;
@@ -231,7 +239,7 @@ export type CommunityInsightInsert = {
 };
 export type CommunityInsightUpdate = Partial<CommunityInsightRow>;
 
-export interface ResearchSourceRow {
+export type ResearchSourceRow = {
   id: string;
   project_id: string;
   user_id: string;
@@ -242,7 +250,7 @@ export interface ResearchSourceRow {
   raw_data: Json;
   confidence: number | null;
   created_at: string;
-}
+};
 export type ResearchSourceInsert = {
   id?: string;
   project_id: string;
@@ -261,7 +269,7 @@ export type ResearchSourceUpdate = Partial<ResearchSourceRow>;
 /* Campaigns + creative                                                       */
 /* -------------------------------------------------------------------------- */
 
-export interface CampaignRow {
+export type CampaignRow = {
   id: string;
   user_id: string;
   name: string;
@@ -272,7 +280,7 @@ export interface CampaignRow {
   persona_ids: Json;
   created_at: string;
   updated_at: string;
-}
+};
 export type CampaignInsert = {
   id?: string;
   user_id: string;
@@ -287,7 +295,7 @@ export type CampaignInsert = {
 };
 export type CampaignUpdate = Partial<CampaignRow>;
 
-export interface CreativeRow {
+export type CreativeRow = {
   id: string;
   campaign_id: string;
   user_id: string;
@@ -302,7 +310,7 @@ export interface CreativeRow {
   version: number;
   created_at: string;
   updated_at: string;
-}
+};
 export type CreativeInsert = {
   id?: string;
   campaign_id: string;
@@ -321,7 +329,7 @@ export type CreativeInsert = {
 };
 export type CreativeUpdate = Partial<CreativeRow>;
 
-export interface CreativeImageRow {
+export type CreativeImageRow = {
   id: string;
   creative_id: string;
   user_id: string;
@@ -330,7 +338,7 @@ export interface CreativeImageRow {
   platform: string | null;
   prompt_used: string | null;
   created_at: string;
-}
+};
 export type CreativeImageInsert = {
   id?: string;
   creative_id: string;
@@ -343,7 +351,7 @@ export type CreativeImageInsert = {
 };
 export type CreativeImageUpdate = Partial<CreativeImageRow>;
 
-export interface BrandVoiceRow {
+export type BrandVoiceRow = {
   id: string;
   user_id: string;
   name: string;
@@ -351,7 +359,7 @@ export interface BrandVoiceRow {
   tone_profile: Json;
   created_at: string;
   updated_at: string;
-}
+};
 export type BrandVoiceInsert = {
   id?: string;
   user_id: string;
@@ -367,7 +375,7 @@ export type BrandVoiceUpdate = Partial<BrandVoiceRow>;
 /* Landing pages                                                              */
 /* -------------------------------------------------------------------------- */
 
-export interface LandingPageRow {
+export type LandingPageRow = {
   id: string;
   campaign_id: string;
   user_id: string;
@@ -379,7 +387,7 @@ export interface LandingPageRow {
   deployed_at: string | null;
   created_at: string;
   updated_at: string;
-}
+};
 export type LandingPageInsert = {
   id?: string;
   campaign_id: string;
@@ -395,7 +403,7 @@ export type LandingPageInsert = {
 };
 export type LandingPageUpdate = Partial<LandingPageRow>;
 
-export interface PageViewRow {
+export type PageViewRow = {
   id: string;
   landing_page_id: string;
   user_id: string;
@@ -403,7 +411,7 @@ export interface PageViewRow {
   utm: Json;
   referrer: string | null;
   created_at: string;
-}
+};
 export type PageViewInsert = {
   id?: string;
   landing_page_id: string;
@@ -415,7 +423,7 @@ export type PageViewInsert = {
 };
 export type PageViewUpdate = Partial<PageViewRow>;
 
-export interface LeadRow {
+export type LeadRow = {
   id: string;
   landing_page_id: string;
   user_id: string;
@@ -424,7 +432,7 @@ export interface LeadRow {
   utm: Json;
   ip_address: string | null;
   created_at: string;
-}
+};
 export type LeadInsert = {
   id?: string;
   landing_page_id: string;
@@ -441,7 +449,7 @@ export type LeadUpdate = Partial<LeadRow>;
 /* Analytics                                                                  */
 /* -------------------------------------------------------------------------- */
 
-export interface PerformanceMetricRow {
+export type PerformanceMetricRow = {
   id: string;
   campaign_id: string;
   creative_id: string | null;
@@ -458,7 +466,7 @@ export interface PerformanceMetricRow {
   cvr: number | null;
   roas: number | null;
   created_at: string;
-}
+};
 export type PerformanceMetricInsert = {
   id?: string;
   campaign_id: string;
@@ -479,7 +487,7 @@ export type PerformanceMetricInsert = {
 };
 export type PerformanceMetricUpdate = Partial<PerformanceMetricRow>;
 
-export interface AnomalyRow {
+export type AnomalyRow = {
   id: string;
   campaign_id: string;
   user_id: string;
@@ -489,7 +497,7 @@ export interface AnomalyRow {
   detected_at: string;
   resolved_at: string | null;
   created_at: string;
-}
+};
 export type AnomalyInsert = {
   id?: string;
   campaign_id: string;
@@ -503,7 +511,7 @@ export type AnomalyInsert = {
 };
 export type AnomalyUpdate = Partial<AnomalyRow>;
 
-export interface AiInsightRow {
+export type AiInsightRow = {
   id: string;
   campaign_id: string;
   user_id: string;
@@ -512,7 +520,7 @@ export interface AiInsightRow {
   confidence: number | null;
   actioned: boolean;
   created_at: string;
-}
+};
 export type AiInsightInsert = {
   id?: string;
   campaign_id: string;
