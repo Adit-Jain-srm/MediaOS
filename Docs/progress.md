@@ -168,8 +168,48 @@ Verification (fresh run): `npx tsc --noEmit` (0 errors), `npm run lint` (0 error
 additions), `npm run build` (**success**). Dep added: `@ai-sdk/openai@4.0.2` (pairs exactly with
 `ai@7.0.4`). Committed as Conventional Commits and pushed to `origin/main`. **Real AI is now active.**
 
-**Next:** Wave 6 (cont.) - **Bright Data Scraping Browser + live-data validation**, then the
-**canonical demo seed**, integration/polish, and ship.
+**Wave 6 (part 2) - Bright Data live data + Scraping Browser: DONE, verified, committed, LIVE-VALIDATED.**
+
+Flipped the research engine from fixtures to **real Bright Data live data**. No parser changes were
+needed for the SERP/Unlocker path - a live round-trip proved `brightdata.ts` already matches the API.
+
+**`brd_json` finding (live, authoritative):** on zone `serp_api1`, appending `brd_json=1` to a Google
+search URL returns **parsed JSON** (`content-type: application/json`), top-level keys
+`general, input, navigation, organic, top_ads, pagination, related`, with `organic[]` items shaped
+`{ title, link, description, rank }` - exactly what `parseSerpJson` reads. The Web Unlocker
+(`{ zone, url, format: "raw", data_format: "markdown" }`) returns clean markdown.
+
+**Scraping Browser (new, `src/lib/research/scraping-browser.ts`):** a `withScrapingBrowser(fn)` helper
+connects `puppeteer-core` to the **remote** `BRIGHTDATA_BROWSER_WS` (a pure WS client - no local
+Chromium, so it runs on Vercel serverless / Node runtime), runs a navigation/extraction callback, and
+**always disconnects** (bounded timeout + retry + leak-guarded `connect`). It returns `null` (never
+throws) when the endpoint is unset or any step fails. `puppeteer-core` is **dynamically imported** so
+it stays server-only and lazy (never in the client bundle; build confirms). The **competitor-ads**
+provider now resolves Meta Ad Library cards through a graceful chain: **Scraping Browser -> Web
+Unlocker markdown -> seeded ad-library fixture** (via the resilient client), and never throws to the
+orchestrator. Exported provider/orchestrator signatures are unchanged.
+
+**Live validation (creds-gated, NOT in CI):**
+- `npm run smoke:brightdata` - SERP `"retirement income newsletter"` returned **9 organic results +
+  8 related searches** (first: *Retirement Income Journal*); Unlocker markdown of `example.com`
+  returned real markdown. Both HTTP 200.
+- `npm run smoke:browser` - connected to the Scraping Browser over WSS (~1.5s), navigated
+  `example.com`, page title `"Example Domain"`. Meta Ad Library navigation hit Bright Data's
+  `Page.navigate domain limit reached` (trial-zone cap) so it **fell back cleanly** - the documented,
+  expected outcome (Meta Ad Library is JS-heavy + access-limited; a working fallback is success).
+
+The **committed test suite stays fully mocked + offline**: `puppeteer-core` and `fetch` are mocked,
+no live calls. New `scraping-browser.test.ts` (pure parsers + the browser->unlocker->fixtures fallback
+chain) plus extended `brightdata.test.ts` (live request shape + a **recorded** real SERP sample) and
+`providers.test.ts` (ad-card path + fallback).
+
+Verification (fresh run): `npx tsc --noEmit` (0 errors), `npm run lint` (0 errors), `npm test`
+(**408 passing**, 45 files - up from 390; +18 across `scraping-browser.test.ts` and the brightdata /
+providers additions), `npm run build` (**success** - `puppeteer-core` is server-only, no client leak).
+Dep added: `puppeteer-core@25.2.1` (pinned exact; WS client only, no Chromium download). Committed as
+Conventional Commits and pushed to `origin/main`. **Real Bright Data data is now active.**
+
+**Next:** Wave 6 (cont.) - the **canonical demo seed**, integration/polish, and ship.
 
 ---
 
@@ -224,7 +264,7 @@ A module is **not done** until all of the following are true (evidence shown, no
 | D6 | Test stack = Vitest (unit/integration, node env) + Playwright (e2e) | this build |
 | D7 | App boots without credentials (lazy env, `is*Configured()`), degrading gracefully | `src/lib/env.ts` |
 | D8 | DB Row/Insert/Update shapes are `type` aliases (not `interface`s) so `SupabaseClient<Database>` infers table types - no per-module remap casts | `src/types/database.ts`, [learnings](./learnings.md) |
-| D9 | Bright Data zones centralized + optional, now **live-configured**: Web Unlocker `mcp_unlocker`, SERP `serp_api1`, Scraping Browser WSS (`BRIGHTDATA_BROWSER_WS`) - set in env, **not yet wired into code** | `src/lib/env.ts`, `.env.example` |
+| D9 | Bright Data zones centralized + optional, now **live-validated + wired**: Web Unlocker `mcp_unlocker`, SERP `serp_api1` (`brd_json=1` -> JSON), Scraping Browser WSS (`BRIGHTDATA_BROWSER_WS`) driven by `puppeteer-core` in `scraping-browser.ts` | `src/lib/env.ts`, `src/lib/research/scraping-browser.ts` |
 | D10 | Operator runs demo-mode without credentials; Research degrades via a 3-layer fallback (live -> enriched -> seeded fixtures) | `src/lib/agent/**`, `src/lib/research/**` |
 
 ---
@@ -235,8 +275,9 @@ A module is **not done** until all of the following are true (evidence shown, no
 |---|---|---|
 | OPEN | Bright Data Pro (`web_data_*`) may be inactive | Engine degrades to verified free-tier search+scrape; Pro providers gated by `isAvailable()` |
 | RESOLVED | Azure image API surface | Foundry v1 needs **no `api-version`** query param; image is `/mai/v1/images/generations` with `output_format: image/png`. LIVE-validated 2026-06-30 (learnings) |
-| PARTIAL | Are real credentials in `.env.local`? | **Azure live-validated** (chat + image both respond, `npm run smoke:azure`); Bright Data live-configured; still verify Supabase before live demo / seed |
-| OPEN | Bright Data Scraping Browser not yet wired into code | **Carry-forward (Wave 4/5):** wire the Scraping Browser (`puppeteer-core`) into the competitor-ads / social providers + validate a live SERP (`brd_json`) / Unlocker round-trip during integration |
+| PARTIAL | Are real credentials in `.env.local`? | **Azure + Bright Data live-validated** (`npm run smoke:azure`, `smoke:brightdata`, `smoke:browser` all green); still verify Supabase before live demo / seed |
+| RESOLVED | Bright Data Scraping Browser wiring | **Wired + LIVE-validated 2026-06-30:** `scraping-browser.ts` (`puppeteer-core` over WSS) drives competitor-ads with a browser->unlocker->fixtures fallback; live SERP (`brd_json=1` -> JSON) + Unlocker round-trip confirmed |
+| KNOWN | Meta Ad Library live extraction | JS-heavy + access-limited (live hit `Page.navigate domain limit reached`); provider falls back to Unlocker markdown -> seeded fixtures. A clean fallback is the accepted outcome |
 | OPEN | Demo seed realism (90-day analytics) | `analytics-seed` phase: fatigue curves, seasonality, platform behaviors |
 | RESOLVED | Git remote | `origin` exists -> https://github.com/Adit-Jain-srm/MediaOS (branch `main`) |
 | RESOLVED | Reference repo leaking into build | Excluded in `.gitignore`, `tsconfig`, `eslint`, `.vercelignore` |
@@ -258,9 +299,15 @@ A module is **not done** until all of the following are true (evidence shown, no
   POST to `/mai/v1/images/generations` with `output_format: image/png`, parsing `data[0].b64_json`).
   Both models confirmed responding (`npm run smoke:azure`); exported signatures unchanged; committed
   suite stays mocked/offline. See [azure-models](./azure-models.md) + [learnings](./learnings.md).
-- **Bright Data Scraping Browser wiring (Wave 6).** Live-configured in env (Web Unlocker `mcp_unlocker`,
-  SERP `serp_api1`, Scraping Browser WSS) but **not yet wired into code**. Wire `puppeteer-core` into
-  the competitor-ads / social providers and validate a live SERP (`brd_json`) / Unlocker round-trip.
+- **Bright Data Scraping Browser wiring (Wave 6). DONE + LIVE-VALIDATED 2026-06-30.** `scraping-browser.ts`
+  drives `puppeteer-core` over the remote WSS endpoint with a leak-guarded connect + bounded
+  timeout/retry; competitor-ads resolves Meta Ad Library cards via **Scraping Browser -> Web Unlocker
+  markdown -> seeded fixtures**. Live SERP (`brd_json=1` returns JSON) + Unlocker round-trip confirmed;
+  browser WSS connect/navigate confirmed (`example.com` title). Meta Ad Library live extraction falls
+  back cleanly (access-limited). Committed suite stays mocked/offline. See [research-engine](./research-engine.md)
+  + [learnings](./learnings.md).
+  - *(optional, not done)* `social` provider could also adopt the Scraping Browser; left as-is to keep
+    scope bounded and signatures stable.
 
 ---
 
@@ -320,3 +367,19 @@ A module is **not done** until all of the following are true (evidence shown, no
   `temperature` is dropped (graceful). Full gate fresh: `tsc` (0), `lint` (0), `npm test` (**390
   passing**, 44 files), `npm run build` (success). Committed/pushed to `origin/main`. **Real AI is now
   active.**
+- **2026-06-30** - Wave 6 (part 2) integrated: **Bright Data live data + Scraping Browser**. Live
+  round-trip proved `brightdata.ts` already matches the API - **no parser change needed**: on zone
+  `serp_api1`, `brd_json=1` returns parsed JSON (`organic[]` = `{title,link,description,rank}`,
+  `related`), and the Web Unlocker returns markdown. Added `scraping-browser.ts` - a leak-guarded
+  `withScrapingBrowser(fn)` that connects `puppeteer-core` to the remote `BRIGHTDATA_BROWSER_WS` (pure
+  WS client, serverless-safe; **dynamically imported** so it's server-only + out of the client bundle)
+  with bounded timeout + retry, returning `null` on any failure. Wired competitor-ads to a
+  **Scraping Browser -> Web Unlocker markdown -> seeded fixture** chain (never throws; signatures
+  unchanged). **LIVE-validated** (creds-gated, not in CI): `npm run smoke:brightdata` -> 9 organic + 8
+  related results + real Unlocker markdown; `npm run smoke:browser` -> WSS connect + `example.com` title
+  `"Example Domain"` (Meta Ad Library navigation hit the trial `Page.navigate domain limit reached` ->
+  clean fallback, as expected). Committed suite stays **mocked/offline** (`puppeteer-core` + `fetch`
+  mocked; recorded real SERP sample). Dep `puppeteer-core@25.2.1` (pinned exact, no Chromium). Full
+  gate fresh: `tsc` (0), `lint` (0), `npm test` (**408 passing**, 45 files), `npm run build`
+  (**success** - server-only, no client leak). Committed/pushed to `origin/main`. **Real Bright Data
+  data is now active.**

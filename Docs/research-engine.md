@@ -110,6 +110,14 @@ client to Bright Data's API at `POST https://api.brightdata.com/request`, author
 `BRIGHTDATA_WEB_UNLOCKER_ZONE` (default `mcp_unlocker`) and `BRIGHTDATA_SERP_ZONE` (defaults to the
 unlocker zone).
 
+> **`brd_json` finding (live-validated 2026-06-30, zone `serp_api1`).** Appending `brd_json=1` to a
+> Google search URL returns **parsed JSON** (`content-type: application/json`), top-level keys
+> `general, input, navigation, organic, top_ads, pagination, related`, with `organic[]` items shaped
+> `{ title, link, description, rank }` - **exactly** what `parseSerpJson` reads, so no parser change
+> was needed. A real query (`"retirement income newsletter"`) returned 9 organic + 8 related results;
+> the Web Unlocker returned clean markdown. Re-verify any time with the creds-gated
+> `npm run smoke:brightdata` (NOT in CI).
+
 **Resilience (every call):**
 
 1. **Retry + timeout** via `@/lib/resilience` (`withRetry`, exponential backoff, 25s budget).
@@ -126,6 +134,46 @@ in CI).
 
 ---
 
+## 4b. Scraping Browser (JS-heavy pages)
+
+Some sources (the Meta Ad Library, infinite-scroll social feeds) render their content with client-side
+JavaScript, so a plain Web Unlocker markdown pull returns an empty shell. For those, `scraping-browser.ts`
+drives a **remote** Chromium over Bright Data's Scraping Browser via a WebSocket endpoint
+(`BRIGHTDATA_BROWSER_WS`). It is a pure **WS client** - there is **no local Chromium download** - so it
+runs unchanged on Vercel serverless (Node runtime).
+
+| Export | Role |
+|---|---|
+| `withScrapingBrowser(fn, opts?)` | Connects `puppeteer-core` to the WSS endpoint, runs `fn(page)`, and **always** closes the page + disconnects. Bounded timeout + retry; **leak-guarded** `connect` (disconnects even if `connect` resolves after the deadline). Returns `fn`'s result, or **`null`** (never throws) when the endpoint is unset or any step fails. |
+| `fetchMetaAdLibraryCards(query, country, opts?)` | Navigates the live Meta Ad Library and extracts visible ad cards via `withScrapingBrowser`; returns `null` when unavailable/empty. |
+| `metaAdLibraryUrl(query, country)` | Builds the Ad Library keyword-search URL (country upper-cased). |
+| `parseMetaAdCards(rawTexts)` / `parseAdCardsFromMarkdown(md)` | Pure, unit-tested parsers (browser DOM text and Unlocker markdown → `ScrapedAdCard[]`). |
+
+Key engineering choices:
+
+- **`puppeteer-core` is dynamically imported** (`await import("puppeteer-core")`) inside the helper, so
+  it is only loaded when a browser endpoint is configured - keeping it **server-only** and **out of the
+  client bundle** (the `type`-only import of `Browser`/`Page` is erased at compile time). Import this
+  module only from server code (providers, server actions, Node-runtime route handlers).
+- The endpoint is read from `process.env.BRIGHTDATA_BROWSER_WS` at call time (so it's independently
+  testable and the offline suite can exercise the pure parsers + fallback chain).
+
+**Fallback chain (competitor-ads, never throws):**
+
+```
+Scraping Browser (live Meta Ad Library)
+   └─ null/empty ─▶ Web Unlocker markdown of the Ad Library URL
+                        └─ upstream failure ─▶ seeded ad-library fixture (via the resilient client)
+```
+
+> **Meta Ad Library reality.** The markup is messy, JS-heavy, and access-limited. Live, the Scraping
+> Browser **connects and navigates** fine (`example.com` title verified via `npm run smoke:browser`),
+> but a Meta Ad Library navigation can hit Bright Data's `Page.navigate domain limit reached` on a
+> trial zone. The provider then degrades cleanly down the chain - **a working fallback is the accepted
+> outcome**; we capture whatever structured signal (advertiser + ad copy) we can and never block.
+
+---
+
 ## 5. The six providers
 
 Each extends `ResearchProvider`, normalizes to the standard models, and is registered by
@@ -133,7 +181,7 @@ Each extends `ResearchProvider`, normalizes to the standard models, and is regis
 
 | Provider (`name`) | Bright Data tools | Yields |
 |---|---|---|
-| Competitor Ad Research (`competitor_ads`) | `search_engine` + `scrape_as_markdown` (Meta Ad Library) | `competitor_ad` - advertiser, copy, classified hooks |
+| Competitor Ad Research (`competitor_ads`) | `search_engine` + **Scraping Browser → Web Unlocker → fixture** chain for the Meta Ad Library (see §4b) | `competitor_ad` - advertiser, copy, classified hooks |
 | Search Intent (`search_intent`) | `search_engine_batch` (related + people-also-ask) | `trend_signal` (rising demand) + `buying_trigger` (intent questions) |
 | Reddit & Community (`reddit_community`) | `web_data_reddit_posts` (Pro) → `search_engine` + `scrape_as_markdown` | `community_insight` + `pain_point` (audience's own words) |
 | News & Industry (`news_industry`) | `search_engine_batch` (+ scrape) | `trend_signal` (market shifts, headlines) |
@@ -283,6 +331,7 @@ The orchestrator picks the provider up via `registry.available()`, runs it in pa
 | `BRIGHTDATA_API_TOKEN` | Bright Data API auth | Serve seeded SERP/scrape fixtures |
 | `BRIGHTDATA_WEB_UNLOCKER_ZONE` | Web Unlocker zone (default `mcp_unlocker`) | Use default |
 | `BRIGHTDATA_SERP_ZONE` | SERP zone (default = unlocker zone) | Use unlocker zone |
+| `BRIGHTDATA_BROWSER_WS` | Scraping Browser WSS endpoint (JS-heavy pages, §4b) | Skip the browser step, fall back to Web Unlocker → fixtures |
 | `AZURE_OPENAI_*` | GPT-4o for synthesis | Seeded/derived personas + heuristic opportunities |
 | `NEXT_PUBLIC_SUPABASE_*` / `SUPABASE_SERVICE_ROLE_KEY` | Persistence (RLS) | In-memory store (demo-safe) |
 
@@ -296,7 +345,15 @@ Vitest, offline and deterministic (no network, mocked AI and Bright Data):
 - `providers/providers.test.ts` - each provider's `transformQuery` + `transformData` on fixtures, and `run()` end-to-end against the fixture client.
 - `orchestrator.test.ts` - pure merge + `runResearchPipeline` integration with a deterministic analyzer.
 - `analyzer.test.ts` - persona synthesis with a **mocked** `generateChat` (valid/garbage/throw) and the no-Azure fallback; `extractJsonBlock` edges.
-- `brightdata.test.ts` - SERP JSON parsing, fixture fallback (never throws), and read-through caching.
+- `brightdata.test.ts` - SERP JSON parsing (incl. a **recorded real SERP sample**), the live request
+  shape (zone / `brd_json` URL / `raw` format / `data_format: markdown` / bearer auth, with `fetch`
+  mocked), fixture fallback (never throws), and read-through caching.
+- `scraping-browser.test.ts` - the pure parsers (`parseMetaAdCards`, `parseAdCardsFromMarkdown`,
+  `metaAdLibraryUrl`) and the `withScrapingBrowser` / `fetchMetaAdLibraryCards` fallback chain with
+  **`puppeteer-core` mocked** (returns null when unconfigured; runs + always disconnects when
+  configured; returns null on connect failure or empty extraction - no leaks, no network).
 - `standard-models.test.ts` - zod schema defaults and edge cases.
 
-Run: `npm test` (or `npx vitest run src/lib/research`).
+Run: `npm test` (or `npx vitest run src/lib/research`). The committed suite is **fully mocked +
+offline**; the **live** round-trips are creds-gated scripts NOT in CI: `npm run smoke:brightdata`
+(SERP + Unlocker) and `npm run smoke:browser` (Scraping Browser WSS).

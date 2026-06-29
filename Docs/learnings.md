@@ -210,3 +210,54 @@ Never repeat a class of mistake twice.
 - **Rule:** Treat this as expected/graceful - the call still returns text, so no code change is needed;
   just don't rely on `temperature` steering output diversity for this model. If determinism/diversity
   ever matters, switch to a non-reasoning chat deployment or vary the prompt, not the temperature.
+
+---
+
+## 2026-06-30 - Wave 6 (Bright Data live data + Scraping Browser)
+
+### Bright Data SERP `brd_json=1` returns JSON on the SERP zone - the existing parser already matched
+- **Problem:** Before going live we assumed `brd_json=1` might return raw HTML (the zone default), which
+  would have meant rewriting `parseSerpJson` to scrape HTML.
+- **Root cause / finding:** On zone `serp_api1`, `POST /request { zone, url: <google ...&brd_json=1>,
+  format: "raw" }` returns **`content-type: application/json`** with top-level keys
+  `general, input, navigation, organic, top_ads, pagination, related`; `organic[]` items are
+  `{ title, link, description, rank }` and `related[]` is strings/`{query}` - **exactly** what the
+  parser reads. A live `"retirement income newsletter"` query returned 9 organic + 8 related results.
+- **Rule:** For the SERP zone, append `brd_json=1` and parse JSON (`organic`/`related`/
+  `people_also_ask`); `format` stays `"raw"` (it controls the transport envelope, not the SERP parsing).
+  Validate live with `npm run smoke:brightdata` before assuming a shape - the live response is the
+  source of truth, and here it already matched (no parser change).
+
+### Bright Data Scraping Browser is a remote WS client - serverless-safe, but use `puppeteer-core` + dynamic import
+- **Problem:** "Add a browser" usually means bundling Chromium - impossible on Vercel serverless, and a
+  static `import "puppeteer"` would download Chromium and bloat/break the build + client bundle.
+- **Root cause:** Bright Data's Scraping Browser runs Chromium **remotely**; you only need a CDP/WS
+  client. `puppeteer-core` (no bundled browser) connecting via `puppeteer.connect({ browserWSEndpoint })`
+  is all that's required, and it works unchanged on Node serverless.
+- **Rule:** Use **`puppeteer-core`** (pinned exact), connect to `BRIGHTDATA_BROWSER_WS`, and **`await
+  import("puppeteer-core")` dynamically** inside the helper (with a `type`-only import for `Browser`/
+  `Page`) so it stays server-only, lazy, and out of the client bundle - `next build` then passes with no
+  config change. Always `disconnect()` in `finally` (and guard the race where `connect` resolves after
+  your timeout) so you never leak a remote session; on any failure return `null` so callers fall back.
+
+### Don't `import "server-only"` in a module the offline Vitest suite must load
+- **Problem:** Marking `scraping-browser.ts` with `import "server-only"` would have thrown the moment
+  `competitor-ads` (and its tests) imported it under Vitest's Node resolver, breaking the suite.
+- **Root cause:** The `server-only` package resolves to a throwing module unless the bundler sets the
+  `react-server` condition (Next does; Vitest does not), and it isn't even installed here. The Vitest
+  config is a frozen contract for this task (couldn't add an alias).
+- **Rule:** When a server-only module must also be unit-tested offline, enforce "server-only" by
+  *construction* (dynamic `import()` of the native dep + read `process.env` at call time + a doc note),
+  not via the `server-only` guard. Reserve `import "server-only"` for modules never loaded by tests.
+
+### Meta Ad Library live extraction is access-limited - design for the fallback, not the happy path
+- **Problem:** Connecting + navigating the Scraping Browser works live (`example.com` title verified),
+  but navigating the **Meta Ad Library** returned `Protocol error (Page.navigate): Page.navigate domain
+  limit reached`, yielding zero cards.
+- **Root cause:** Meta Ad Library is JS-heavy and access-restricted, and the trial Scraping Browser zone
+  caps navigations/domains per session - so live extraction is unreliable by nature, not a bug in our
+  code.
+- **Rule:** Treat JS-heavy/anti-bot pages as **best-effort**: bound the effort, extract whatever signal
+  you can (advertiser + ad copy), and ALWAYS fall back cleanly (Scraping Browser → Web Unlocker markdown
+  → seeded fixture). A robust fallback chain that never throws is the success criterion - don't sink
+  time chasing brittle selectors.
