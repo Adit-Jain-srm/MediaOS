@@ -1,23 +1,44 @@
 import type { Metadata } from "next";
-import { Browsers } from "@phosphor-icons/react/dist/ssr";
 
-import { PageHeader } from "@/components/layout/page-header";
-import { EmptyState } from "@/components/ui/states";
+import { LandingManager } from "@/components/landing-page/landing-manager";
+import { getServiceConfigStatus } from "@/lib/env";
+import { DEMO_CAMPAIGN_ID, DEMO_CAMPAIGN_NAME } from "@/lib/landing/fixtures";
+import { getLandingHubData } from "@/lib/landing/studio";
+import { campaignService } from "@/lib/services";
 
 export const metadata: Metadata = { title: "Landing Pages" };
 
-export default function LandingPagesPage() {
+// Per-request store (Supabase RLS or seeded in-memory) - never statically cache.
+export const dynamic = "force-dynamic";
+
+/** Campaign options: real campaigns when available, else the seeded demo campaign. */
+async function listCampaignOptions(): Promise<{ id: string; name: string }[]> {
+  const demo = { id: DEMO_CAMPAIGN_ID, name: DEMO_CAMPAIGN_NAME };
+  try {
+    const campaigns = await campaignService.list();
+    const options = campaigns.map((c) => ({ id: c.id, name: c.name }));
+    return options.length > 0 ? options : [demo];
+  } catch {
+    return [demo];
+  }
+}
+
+export default async function LandingPagesPage({ searchParams }: { searchParams: Promise<{ campaign?: string }> }) {
+  const { campaign } = await searchParams;
+  const campaigns = await listCampaignOptions();
+  const active = campaigns.find((c) => c.id === campaign) ?? campaigns[0];
+
+  const config = getServiceConfigStatus();
+  const data = await getLandingHubData(active.id);
+
   return (
-    <div className="mx-auto max-w-6xl space-y-6 p-4 md:p-6">
-      <PageHeader
-        title="Landing Pages"
-        description="Generate, edit, and deploy public pages to /lp, capture leads to Supabase, and track views, all from one place."
-      />
-      <EmptyState
-        icon={<Browsers weight="duotone" className="size-5" />}
-        title="No landing pages yet"
-        description="The page generator, live editor, and one-click deploy will live here. Deployed pages are publicly reachable at /lp/[slug]."
-      />
-    </div>
+    <LandingManager
+      key={active.id}
+      campaignId={active.id}
+      campaignName={active.name}
+      campaigns={campaigns}
+      azureConfigured={config.azure}
+      initialData={data}
+    />
   );
 }
