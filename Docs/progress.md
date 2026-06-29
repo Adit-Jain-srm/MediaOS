@@ -211,6 +211,18 @@ Conventional Commits and pushed to `origin/main`. **Real Bright Data data is now
 
 **Next:** Wave 6 (cont.) - Ship: Vercel deploy + README (3 answers) + demo walkthrough + perf pass.
 
+**Wave 6 (final) - Ship: DONE, deployed, committed.**
+
+Deployed to Vercel production at **https://mediaos-kappa.vercel.app**. Wrote the submission README
+(3 required questions answered, demo walkthrough, architecture, tech stack, running locally, env
+vars table). Updated `.vercelignore` (excludes `Reference-repo/`, `Docs/`, `scripts/`, `.cursor/`,
+`/supabase/` - the leading `/` prevents matching `src/lib/supabase/`). Set all 16 env vars on
+Vercel production. Build succeeded on Vercel (Turbopack, Next.js 16.2.9). Final gate fresh:
+`tsc` (0), `lint` (0), `npm test` (**418 passing**, 46 files), `npm run build` (success).
+Committed as Conventional Commits and pushed to `origin/main`.
+
+**ALL WAVES COMPLETE. SHIPPED.**
+
 ---
 
 ## Build Wave Plan + File-Claim Map
@@ -396,3 +408,10 @@ A module is **not done** until all of the following are true (evidence shown, no
   module fixtures reference the canonical ids) and `getDemoSeedIdentity()`. Full gate fresh: `tsc` (0),
   `lint` (0), `npm test` (**418 passing**, 46 files - up from 408), `npm run build` (success).
   Committed as Conventional Commits and pushed to `origin/main`. **Canonical demo is now coherent.**
+- **2026-06-30** - Wave 6 (final) - **Ship**: Deployed to Vercel production at
+  `https://mediaos-kappa.vercel.app`. Wrote the submission README (3 required questions, demo
+  walkthrough, architecture, tech stack, running locally, env vars). Updated `.vercelignore` to
+  exclude non-runtime dirs without matching `src/lib/supabase/`. Set all 16 env vars on Vercel
+  production via CLI. Vercel build green (Turbopack, Next.js 16.2.9, all routes resolved). Final
+  gate fresh: `tsc` (0), `lint` (0), `npm test` (**418 passing**, 46 files), `npm run build`
+  (success). Committed/pushed to `origin/main`. **ALL WAVES COMPLETE. SHIPPED.**
