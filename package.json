@@ -11,7 +11,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "smoke:azure": "node scripts/smoke-azure.mjs"
+    "smoke:azure": "node scripts/smoke-azure.mjs",
+    "smoke:brightdata": "node scripts/smoke-brightdata.mjs",
+    "smoke:browser": "node scripts/smoke-browser.mjs"
   },
   "dependencies": {
     "@ai-sdk/azure": "^4.0.2",
@@ -30,6 +32,7 @@
     "motion": "^12.42.0",
     "next": "16.2.9",
     "next-themes": "^0.4.6",
+    "puppeteer-core": "25.2.1",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "recharts": "^3.9.0",
