@@ -96,21 +96,36 @@ function draftToPlan(draft: PlanDraft, goal: string): AgentPlan {
 
 /**
  * Deterministic plan used when the model can't be reached or its output is
- * unparseable. Includes steps wired to whichever built-in tools are registered
- * so the offline demo still executes real tool calls.
+ * unparseable. When the module tools are registered it lays out the end-to-end
+ * "golden path" (research -> creatives -> landing -> analytics); otherwise it
+ * wires whichever built-in tools exist, so the offline demo still executes real
+ * tool calls in either case.
  */
 export function fallbackPlan(goal: string, toolNames: string[] = []): AgentPlan {
   const has = (name: string) => toolNames.includes(name);
-  const steps: AgentPlanStep[] = [{ id: "step-1", title: "Interpret the goal", description: "Restate what success looks like and the constraints.", status: "pending" }];
+  const push = (steps: AgentPlanStep[], step: Omit<AgentPlanStep, "id" | "status">): void => {
+    steps.push({ id: `step-${steps.length + 1}`, status: "pending", ...step });
+  };
 
+  // Golden path: the agent has the real module tools, so lay out a full launch.
+  if (has("research_audience")) {
+    const steps: AgentPlanStep[] = [{ id: "step-1", title: "Interpret the goal", description: "Restate the objective, audience, and constraints.", status: "pending" }];
+    push(steps, { title: "Research the audience", description: "Run the research engine for personas, pain points, and source citations.", tool: "research_audience" });
+    if (has("generate_creatives")) push(steps, { title: "Generate ad creatives", description: "Draft hook-analyzed, scored variants grounded in the research.", tool: "generate_creatives" });
+    if (has("build_landing_page")) push(steps, { title: "Build a landing page", description: "Generate a conversion-structured page for the offer.", tool: "build_landing_page" });
+    if (has("get_performance_summary")) push(steps, { title: "Review performance", description: "Summarize results and surface the next best action.", tool: "get_performance_summary" });
+    push(steps, { title: "Summarize + recommend next steps", description: "Recap the artifacts produced and propose the highest-leverage follow-up." });
+    return { goal, createdAt: new Date().toISOString(), steps };
+  }
+
+  const steps: AgentPlanStep[] = [{ id: "step-1", title: "Interpret the goal", description: "Restate what success looks like and the constraints.", status: "pending" }];
   if (has("list_capabilities")) {
-    steps.push({ id: `step-${steps.length + 1}`, title: "Review available capabilities", description: "Check which tools the Operator can use right now.", tool: "list_capabilities", status: "pending" });
+    push(steps, { title: "Review available capabilities", description: "Check which tools the Operator can use right now.", tool: "list_capabilities" });
   }
   if (has("summarize_context")) {
-    steps.push({ id: `step-${steps.length + 1}`, title: "Summarize the working context", description: "Ground the plan in the active conversation and campaign.", tool: "summarize_context", status: "pending" });
+    push(steps, { title: "Summarize the working context", description: "Ground the plan in the active conversation and campaign.", tool: "summarize_context" });
   }
-
-  steps.push({ id: `step-${steps.length + 1}`, title: "Recommend next actions", description: "Propose the highest-leverage next steps for this goal.", status: "pending" });
+  push(steps, { title: "Recommend next actions", description: "Propose the highest-leverage next steps for this goal." });
   return { goal, createdAt: new Date().toISOString(), steps };
 }
 
@@ -146,33 +161,51 @@ export interface SuggestedActionInput {
 }
 
 /**
- * Builds deterministic, context-aware follow-up chips. Always offers something
- * that works today (capabilities) plus forward-looking actions that map to the
- * platform's roadmap, so the surface feels alive even before module tools land.
+ * Builds deterministic, context-aware follow-up chips wired to real follow-up
+ * prompts. When the module tools are registered the chips drive the golden path
+ * (launch a campaign, proactive briefing, research, creatives); otherwise they
+ * offer what works today, so the surface always feels alive.
  */
 export function buildSuggestedActions({ goal, toolNames, mode }: SuggestedActionInput): SuggestedAction[] {
+  const has = (name: string) => toolNames.includes(name);
   const suggestions: SuggestedAction[] = [];
+  const topic = truncate(goal, 80);
 
-  if (toolNames.includes("list_capabilities")) {
+  if (has("research_audience") && has("generate_creatives")) {
+    suggestions.push({
+      id: "launch",
+      label: "Launch full campaign",
+      prompt: `Launch a full campaign for "${topic}": research the audience, create the campaign, generate creatives, build and deploy a landing page, then summarize with next steps.`,
+    });
+  }
+
+  if (has("proactive_briefing")) {
+    suggestions.push({
+      id: "briefing",
+      label: "What should I do today?",
+      prompt: "Give me a proactive briefing: the daily brief, top anomalies, and the highest-leverage next actions for my campaign.",
+    });
+  }
+
+  if (has("research_audience")) {
+    suggestions.push({ id: "research", label: "Research the audience", prompt: `Research the target audience for "${topic}" and surface their top pain points with sources.` });
+  } else if (has("list_capabilities")) {
     suggestions.push({ id: "capabilities", label: "What can you do?", prompt: "What can you do right now, and what is coming soon?" });
   }
 
-  suggestions.push({
-    id: "research",
-    label: "Research the audience",
-    prompt: `Research the target audience for "${truncate(goal, 80)}" and surface their top pain points with sources.`,
-  });
-  suggestions.push({
-    id: "creatives",
-    label: "Draft ad concepts",
-    prompt: "Draft three platform-ready ad concepts grounded in the research, each with a hook analysis.",
-  });
+  if (has("generate_creatives")) {
+    suggestions.push({ id: "creatives", label: "Draft ad concepts", prompt: "Draft three platform-ready ad concepts grounded in the research, each with a hook analysis and direct-response score." });
+  } else {
+    suggestions.push({ id: "research-basic", label: "Research the audience", prompt: `Research the target audience for "${topic}" and surface their top pain points with sources.` });
+  }
 
   if (mode === "demo") {
     suggestions.push({ id: "configure", label: "Enable live mode", prompt: "How do I configure Azure OpenAI so you can run live?" });
   }
 
-  return suggestions.slice(0, 4);
+  // De-duplicate by id (defensive) and cap at four chips.
+  const seen = new Set<string>();
+  return suggestions.filter((s) => (seen.has(s.id) ? false : (seen.add(s.id), true))).slice(0, 4);
 }
 
 function truncate(value: string, max: number): string {

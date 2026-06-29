@@ -5,6 +5,7 @@ export {
   OPERATOR_SYSTEM_PROMPT,
   OPERATOR_IDENTITY,
   OPERATOR_PRINCIPLES,
+  OPERATOR_WORKFLOW,
   type OperatorPromptContext,
 } from "./prompts";
 

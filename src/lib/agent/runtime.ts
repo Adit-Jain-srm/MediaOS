@@ -5,7 +5,7 @@ import { isAzureConfigured } from "@/lib/env";
 import { toErrorMessage } from "@/lib/errors";
 import { logger } from "@/lib/logger";
 
-import { encodeEvent, type OperatorEvent, type OperatorMode } from "./events";
+import { encodeEvent, type OperatorEvent, type OperatorMode, type SuggestedAction } from "./events";
 import {
   buildPlanningPrompt,
   buildSuggestedActions,
@@ -51,7 +51,14 @@ import type {
  * loop is unit-testable with no network and no database.
  */
 
-const DEFAULT_MAX_STEPS = 6;
+/**
+ * Step budget for the multi-step tool loop. Sized for the full golden path -
+ * research -> personas -> campaign -> creatives -> landing page -> deploy ->
+ * analytics + a final summary turn - each tool call consuming a step. Kept
+ * generous (vs. the original demo's 6) so a long autonomous chain isn't cut off
+ * mid-run; the planner still keeps plans short.
+ */
+const DEFAULT_MAX_STEPS = 16;
 
 const DEMO_SUMMARY =
   "I drafted a plan and ran the available built-in tools to prove the loop end to end. " +
@@ -290,7 +297,10 @@ export async function* runOperator(
     };
   }
 
-  const suggestions = buildSuggestedActions({ goal, toolNames, mode });
+  // Prefer the proactive briefing's own next-actions (the improvement loop's
+  // real follow-up prompts) when one was produced; otherwise fall back to the
+  // deterministic, tool-aware chips.
+  const suggestions = suggestionsFromArtifacts(artifacts) ?? buildSuggestedActions({ goal, toolNames, mode });
   yield { type: "suggestions", suggestions };
 
   // --- Persist outcome (fail-safe) -----------------------------------------
@@ -419,31 +429,94 @@ async function* mockParts(
 ): AsyncGenerator<ModelStreamPart> {
   yield { type: "text-delta", text: "Here is how I'll approach this. " };
 
-  const script: { name: string; input: unknown }[] = [
-    { name: "list_capabilities", input: {} },
-    { name: "summarize_context", input: { focus: goal } },
-  ];
-
-  for (const { name, input } of script) {
-    if (ctx.signal?.aborted) break;
-    const def = registry.get(name);
-    if (!def) continue;
-
-    const toolCallId = idGen();
-    yield { type: "text-delta", text: `Running ${name}. ` };
-    yield { type: "tool-call", toolCallId, toolName: name, input };
-
-    let output: AgentToolResult;
-    try {
-      output = await def.execute(input, ctx);
-    } catch (error) {
-      output = { ok: false, error: toErrorMessage(error) };
-    }
-    yield { type: "tool-result", toolCallId, toolName: name, output };
+  // When the real module tools are registered, the offline demo walks the golden
+  // path end to end (research -> creatives -> landing -> analytics), threading the
+  // research pain points into creative generation - so the hero feature is fully
+  // demoable with zero credentials. Otherwise it runs the dependency-free
+  // built-ins to prove the loop.
+  if (registry.has("research_audience") && registry.has("generate_creatives")) {
+    yield* mockGoldenPath(registry, ctx, goal, idGen);
+  } else {
+    yield* mockBuiltins(registry, ctx, goal, idGen);
   }
 
   yield { type: "text-delta", text: DEMO_SUMMARY };
   yield { type: "finish" };
+}
+
+/** Runs one tool, streaming its narration + call + result, and returns the output. */
+async function* execMockTool(
+  registry: ToolRegistry,
+  ctx: ToolExecutionContext,
+  name: string,
+  input: unknown,
+  idGen: () => string,
+): AsyncGenerator<ModelStreamPart, AgentToolResult | undefined> {
+  const def = registry.get(name);
+  if (!def) return undefined;
+
+  const toolCallId = idGen();
+  yield { type: "text-delta", text: `Running ${name}. ` };
+  yield { type: "tool-call", toolCallId, toolName: name, input };
+
+  let output: AgentToolResult;
+  try {
+    output = await def.execute(input, ctx);
+  } catch (error) {
+    output = { ok: false, error: toErrorMessage(error) };
+  }
+  yield { type: "tool-result", toolCallId, toolName: name, output };
+  return output;
+}
+
+/** The dependency-free built-in script (no module tools registered). */
+async function* mockBuiltins(
+  registry: ToolRegistry,
+  ctx: ToolExecutionContext,
+  goal: string,
+  idGen: () => string,
+): AsyncGenerator<ModelStreamPart> {
+  const script: { name: string; input: unknown }[] = [
+    { name: "list_capabilities", input: {} },
+    { name: "summarize_context", input: { focus: goal } },
+  ];
+  for (const { name, input } of script) {
+    if (ctx.signal?.aborted) break;
+    yield* execMockTool(registry, ctx, name, input, idGen);
+  }
+}
+
+/** Scripted golden-path run that executes the real module tools offline. */
+async function* mockGoldenPath(
+  registry: ToolRegistry,
+  ctx: ToolExecutionContext,
+  goal: string,
+  idGen: () => string,
+): AsyncGenerator<ModelStreamPart> {
+  const research = yield* execMockTool(registry, ctx, "research_audience", { query: goal }, idGen);
+  if (ctx.signal?.aborted) return;
+
+  const painPoints = extractDemoPainPoints(research);
+  yield* execMockTool(registry, ctx, "generate_creatives", { platform: "meta", painPoints, count: 3 }, idGen);
+  if (ctx.signal?.aborted) return;
+
+  if (registry.has("build_landing_page")) {
+    yield* execMockTool(registry, ctx, "build_landing_page", { template: "squeeze", angle: "inflation protection" }, idGen);
+    if (ctx.signal?.aborted) return;
+  }
+  if (registry.has("get_performance_summary")) {
+    yield* execMockTool(registry, ctx, "get_performance_summary", {}, idGen);
+  }
+}
+
+/** Pulls pain-point summaries out of a research_audience result (best-effort). */
+function extractDemoPainPoints(result: AgentToolResult | undefined): string[] {
+  const data = result?.ok ? (result.data as { painPoints?: { summary?: string }[] } | undefined) : undefined;
+  if (!data?.painPoints) return [];
+  return data.painPoints
+    .map((point) => point.summary)
+    .filter((summary): summary is string => Boolean(summary))
+    .slice(0, 4);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -495,6 +568,31 @@ function buildSystemPrompt(input: OperatorRunInput, toolDefs: AgentTool[], plan:
     campaignName: input.campaignName,
     extraContext,
   });
+}
+
+/**
+ * Derives suggestion chips from produced artifacts. A `proactive_briefing`
+ * artifact carries `nextActions` (real follow-up prompts that drive the
+ * improvement loop, e.g. regenerate the weakest creative), so we surface those
+ * as the run's chips. Returns `null` when no artifact supplies actions.
+ */
+function suggestionsFromArtifacts(artifacts: AgentArtifact[]): SuggestedAction[] | null {
+  for (const artifact of artifacts) {
+    if (artifact.type !== "proactive-briefing") continue;
+    const data = artifact.data as { nextActions?: unknown };
+    const actions = data?.nextActions;
+    if (Array.isArray(actions) && actions.length > 0) {
+      const valid = actions.filter(
+        (action): action is SuggestedAction =>
+          Boolean(action) &&
+          typeof (action as SuggestedAction).id === "string" &&
+          typeof (action as SuggestedAction).label === "string" &&
+          typeof (action as SuggestedAction).prompt === "string",
+      );
+      if (valid.length > 0) return valid.slice(0, 4);
+    }
+  }
+  return null;
 }
 
 /** Accepts whatever a tool returned and normalizes it to an `AgentToolResult`. */

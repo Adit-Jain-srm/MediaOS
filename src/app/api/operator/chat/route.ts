@@ -10,6 +10,7 @@ import {
   type OperatorPersistence,
 } from "@/lib/agent/persistence";
 import { registerBuiltinTools } from "@/lib/agent/tools";
+import { registerModuleTools } from "@/lib/agent/tools/index";
 import { streamOperatorRun, type OperatorRunInput } from "@/lib/agent/runtime";
 
 /**
@@ -31,8 +32,11 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-// Ensure the built-in tool set exists for this server instance (idempotent).
+// Ensure the full tool set exists for this server instance (idempotent): the
+// dependency-free built-ins plus every module tool (research, campaign, creative,
+// landing, analytics) so the Operator can plan + execute a full campaign.
 registerBuiltinTools();
+registerModuleTools();
 
 const DEMO_USER_ID = "demo-operator";
 
