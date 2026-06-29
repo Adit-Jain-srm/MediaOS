@@ -261,3 +261,30 @@ Never repeat a class of mistake twice.
   you can (advertiser + ad copy), and ALWAYS fall back cleanly (Scraping Browser → Web Unlocker markdown
   → seeded fixture). A robust fallback chain that never throws is the success criterion - don't sink
   time chasing brittle selectors.
+
+---
+
+## Wave 6 - Canonical Demo Seed + Integration Polish
+
+### Per-module demo ids fragment the judge experience — unify via a single constants file
+- **Problem:** Each module seeded its own demo data under different campaign ids (campaign store: a
+  string id, Creative Studio: a UUID, analytics: adopted creatives via a bridge, landing: reused
+  creative's id, research: its own project id with `null` campaign link). A fresh judge navigating
+  across modules saw disjointed "demo" campaigns.
+- **Fix:** Created `src/lib/seed/constants.ts` as the ONE canonical source of truth for all demo ids
+  (`DEMO_CAMPAIGN_ID`, `DEMO_USER_ID`, `DEMO_RESEARCH_PROJECT_ID`, `DEMO_CREATIVE_IDS`,
+  `DEMO_LANDING_IDS`, `DEMO_LANDING_SLUG`, `DEMO_PAIN_POINTS`, `DEMO_VOCAB`). Every module store now
+  imports from this file. The research project is linked to the campaign via `campaignId`. The analytics
+  "adoption bridge" is now just a fallback path rather than the primary mechanism.
+- **Rule:** When multiple modules need to reference the same entity, define the id in ONE shared
+  constants file and import everywhere. Never inline ids in multiple modules — they WILL drift.
+
+### Error boundaries prevent white-screen during demo
+- **Rule:** Always wrap client-renderable shells in an error boundary. A white screen during a demo is
+  worse than an error message with a "Try again" button.
+
+### Command palette registration at module level
+- **Pattern:** Module actions register via a side-effect import (`import "@/lib/command-actions-init"`)
+  in the palette component. This ensures all actions are available by the time the palette renders,
+  regardless of which page the user navigates to first.
+

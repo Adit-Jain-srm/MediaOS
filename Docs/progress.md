@@ -209,7 +209,7 @@ providers additions), `npm run build` (**success** - `puppeteer-core` is server-
 Dep added: `puppeteer-core@25.2.1` (pinned exact; WS client only, no Chromium download). Committed as
 Conventional Commits and pushed to `origin/main`. **Real Bright Data data is now active.**
 
-**Next:** Wave 6 (cont.) - the **canonical demo seed**, integration/polish, and ship.
+**Next:** Wave 6 (cont.) - Ship: Vercel deploy + README (3 answers) + demo walkthrough + perf pass.
 
 ---
 
@@ -286,13 +286,14 @@ A module is **not done** until all of the following are true (evidence shown, no
 
 ## Carry-Forward (must address in a later wave)
 
-- **Canonical demo identity (Wave 6 demo-seed).** Modules currently seed the demo under **different**
-  campaign ids - the campaign store, Creative Studio, the analytics "adoption" bridge, and landing
-  (which reuses creative's demo campaign) don't share one id. The Wave 6 demo-seed **must establish ONE
-  canonical seeded campaign id** that research -> creatives -> landing -> analytics all reference, so
-  judges see a single coherent campaign instead of several disconnected "demo" campaigns. **Until then,
-  analytics adopts creatives into the headline campaign as a bridge** - a deliberate stopgap, not the
-  intended design. See [learnings](./learnings.md) (Wave 4).
+- **Canonical demo identity (Wave 6 demo-seed). DONE 2026-06-30.** Created `src/lib/seed/constants.ts`
+  as the single source of truth for all demo ids (`DEMO_CAMPAIGN_ID`, `DEMO_USER_ID`,
+  `DEMO_RESEARCH_PROJECT_ID`, `DEMO_CREATIVE_IDS`, `DEMO_LANDING_IDS`, `DEMO_LANDING_SLUG`). Every
+  module store (campaign, creative, landing, research, analytics, agent tools) now imports from this
+  file. The research project links to the campaign via `campaignId`. The analytics "adoption bridge"
+  reduced to a fallback. The Command Center shows real stats for the canonical campaign. Error boundary
+  wraps the dashboard shell. Command palette registers all module actions. Integration test validates
+  cross-module id consistency. All 418 tests pass, build succeeds.
 - **Azure AI Foundry client adaptation (Wave 6). DONE + LIVE-VALIDATED 2026-06-30.** `src/lib/ai/azure.ts`
   + `src/lib/env.ts` now target the Foundry **OpenAI-compatible `v1` surface** (chat via
   `@ai-sdk/openai` `provider.chat("gpt-5.3-chat")` chat-completions; image via `Authorization: Bearer`
@@ -383,3 +384,15 @@ A module is **not done** until all of the following are true (evidence shown, no
   gate fresh: `tsc` (0), `lint` (0), `npm test` (**408 passing**, 45 files), `npm run build`
   (**success** - server-only, no client leak). Committed/pushed to `origin/main`. **Real Bright Data
   data is now active.**
+- **2026-06-30** - Wave 6 (part 3) integrated: **Canonical Demo Seed + Integration Polish**.
+  Established `src/lib/seed/constants.ts` as the ONE source of truth for all demo ids - every module
+  (campaign, creative, landing, research, analytics, agent tools) now imports from this single file.
+  The research project links to the campaign via `campaignId`. Rebuilt the **Command Center** (`/`)
+  page to show the demo campaign card with live stats (impressions, clicks, conversions, spend) and
+  quick-links to each module filtered by campaign id. Added a **top-level error boundary** in the
+  dashboard shell (catches unhandled client errors, never white-screens). Registered all module
+  routes + key actions (new campaign, new research, open operator, view creatives/landing/analytics) in
+  the **command palette**. Added `demo-seed.ts` with `validateDemoSeedConsistency()` (verifies all
+  module fixtures reference the canonical ids) and `getDemoSeedIdentity()`. Full gate fresh: `tsc` (0),
+  `lint` (0), `npm test` (**418 passing**, 46 files - up from 408), `npm run build` (success).
+  Committed as Conventional Commits and pushed to `origin/main`. **Canonical demo is now coherent.**
