@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ResilientBrightDataClient, resetBrightDataClient, setBrightDataClient } from "../brightdata";
 import { brightDataFixtures } from "../fixtures/brightdata-fixtures";
@@ -40,6 +40,32 @@ describe("CompetitorAdsProvider", () => {
     expect(first.data.platform).toBe("meta");
     expect(first.data.hooksUsed.length).toBeGreaterThan(0);
     expect(out.sources.length).toBeGreaterThan(0);
+  });
+
+  it("transformData places live ad-library cards (meta) ahead of SERP ads", () => {
+    const adCards = [
+      {
+        advertiser: "Stansberry Research",
+        copy: "Inflation is quietly destroying your nest egg. Here's the 3-fund fix.",
+        url: "https://www.facebook.com/ads/library/?q=stansberry%20inflation",
+      },
+    ];
+    const out = new CompetitorAdsProvider().transformData(
+      { responses: [brightDataFixtures.serpCompetitorAds], adCards },
+      params,
+    );
+    const ads = byKind(out.items, "competitor_ad");
+    const first = ads[0];
+    if (first.kind !== "competitor_ad") throw new Error("expected competitor_ad");
+    expect(first.data.advertiser).toBe("Stansberry Research");
+    expect(first.data.platform).toBe("meta");
+    expect(first.data.creativeType).toBe("image");
+    expect(first.data.hooksUsed.length).toBeGreaterThan(0);
+  });
+
+  it("transformData tolerates missing adCards (SERP-only, backward compatible)", () => {
+    const out = new CompetitorAdsProvider().transformData({ responses: [brightDataFixtures.serpCompetitorAds] }, params);
+    expect(byKind(out.items, "competitor_ad").length).toBeGreaterThanOrEqual(5);
   });
 });
 
@@ -90,8 +116,20 @@ describe("WebIntelligenceProvider", () => {
 });
 
 describe("provider.run end-to-end against the fixture client (no network)", () => {
-  beforeEach(() => setBrightDataClient(new ResilientBrightDataClient(null)));
+  beforeEach(() => {
+    // Guarantee the Scraping Browser is treated as unconfigured so the suite stays
+    // offline (no puppeteer connect, no network) regardless of the host env.
+    vi.stubEnv("BRIGHTDATA_BROWSER_WS", "");
+    setBrightDataClient(new ResilientBrightDataClient(null));
+  });
   afterEach(() => resetBrightDataClient());
+
+  it("competitor_ads degrades through the ad-library chain to seeded meta cards", async () => {
+    const result = await new CompetitorAdsProvider().run(params);
+    expect(result.status).toBe("success");
+    const metaAds = result.items.filter((i) => i.kind === "competitor_ad" && i.data.platform === "meta");
+    expect(metaAds.length).toBeGreaterThan(0);
+  });
 
   it("every provider returns success with normalized items and never throws", async () => {
     const providers = [
