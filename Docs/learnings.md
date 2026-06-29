@@ -137,3 +137,29 @@ Never repeat a class of mistake twice.
 - **Rule:** Bake the boundary into the module's public surface from the start: a pure barrel for
   clients, explicit server-only paths for actions/routes, and an explicit `runtime` on any route doing
   Node-only work. Boundary discipline up front turns the integration gate into a formality.
+
+---
+
+## 2026-06-30 - Wave 4 (Landing Pages + Performance Intelligence) integration
+
+### `URL.origin` is the string `"null"` for non-HTTP schemes
+- **Problem:** Cleaning a visitor `referer` header with `new URL(ref).origin` produced the literal
+  string `"null"` for app-deep-link referrers like `android-app://com.example`, polluting attribution.
+- **Root cause:** Per the URL spec, `origin` is only defined for special (HTTP(S)/ws(s)/ftp/file)
+  schemes; for every other scheme it serializes to the opaque string `"null"` rather than throwing.
+- **Rule:** Don't normalize untrusted referrers via `.origin`. Build the base from
+  `protocol + host + pathname` (host-guarded), drop query/hash, cap the length, and fall back to the
+  trimmed raw value on parse failure. See `cleanReferrer` in `src/lib/landing/utm.ts` (+`utm.test.ts`).
+
+### Per-module independent demo seeding drifts campaign ids apart
+- **Problem:** Each module seeds its own demo data under a *different* campaign id - the campaign store,
+  Creative Studio, the analytics "adoption" bridge, and landing (which reuses creative's demo campaign)
+  don't share one id. A judge clicking through research -> creatives -> landing -> analytics sees
+  several disconnected "demo" campaigns instead of one coherent journey.
+- **Root cause:** Modules were built in parallel with no shared seed contract; each invented its own
+  canonical id. Analytics papers over this at runtime by *adopting* creatives into the headline
+  campaign as a bridge, but the underlying ids still diverge.
+- **Rule:** A demo needs **one** canonical seeded campaign id that every module references. Defer the
+  real fix to the Wave 6 demo-seed (establish the shared id at seed time); until then, document the
+  adoption bridge as a known stopgap so it isn't mistaken for the intended design. See the
+  CARRY-FORWARD note in [progress](./progress.md).

@@ -80,7 +80,36 @@ worker had run). **No build-only fixes were needed**: both workers' Server/Clien
 already clean (client-safe barrel exports, server-only modules imported by explicit path, `runtime =
 "nodejs"` on the streaming route). Committed as Conventional Commits and pushed to `origin/main`.
 
-**Next:** Wave 4 - Landing Pages + Performance Intelligence (Analytics) (then orchestration/seed, ship).
+**Wave 4 - Landing Pages + Performance Intelligence (Analytics): DONE, verified, committed.**
+
+Delivered (two parallel workers, integrated in a single pass):
+- **Landing Pages** (`src/lib/landing/**`, `src/lib/services/landing.service.ts`,
+  `src/components/landing-page/**`, `src/app/(dashboard)/landing-pages/**`, `src/app/lp/[slug]/page.tsx`,
+  `src/app/api/leads/**`, `src/app/api/page-views/**`): an AI **landing-page generator** (sections,
+  copy, theme) with a deterministic fallback, an in-app **editor/inspector + live preview**, slug
+  management, A/B variants, and the **public `/lp/[slug]` route** that captures **leads** and
+  **page-views** (UTM + cleaned referrer attribution) through anonymous-insert API routes scoped by the
+  deployed-page RLS join. See [landing-pages](./landing-pages.md).
+- **Performance Intelligence** (`src/lib/analytics/**`, `src/lib/seed/**`,
+  `src/lib/services/analytics.service.ts`, `src/components/analytics/**`,
+  `src/app/(dashboard)/analytics/**`): deterministic **90-day seeded metrics** (fatigue curves,
+  seasonality, platform behaviors), **aggregation/math** utilities, **anomaly detection**, a
+  **daily-brief** generator, and **recommendations**, surfaced through the analytics overview +
+  per-campaign drill-down with funnel, time-series, platform-comparison, and creative-correlation
+  charts and CSV export. See [analytics](./analytics.md).
+
+Verification (fresh run): `npx tsc --noEmit` (0 errors), `npm run lint` (0 errors), `npm test`
+(**337 passing**, 42 files), and `npm run build` (success - the real integration gate that neither
+worker had run). **No build-only fixes were needed**: both workers' Server/Client boundaries were
+already clean (client-safe barrels, server-only modules behind explicit paths, route handlers with
+explicit runtime, `/lp/[slug]` dynamically server-rendered). Committed as Conventional Commits and
+pushed to `origin/main`.
+
+**All five product modules (Research, Campaigns, Creative Studio, Landing Pages, Performance
+Intelligence) plus the Operator agent are now complete, verified, and committed.**
+
+**Next:** Wave 5 - Agent tool-wiring (expose every module as Operator tools) + Bright Data Scraping
+Browser integration + live-data validation. Then Wave 6 (demo seed + ship).
 
 ---
 
@@ -101,8 +130,8 @@ extend via new files, don't rewrite. Serialize all git operations (one committer
 | **2** | (done) Agent tools (`agent-tools`) | `src/lib/agent/tools/**` (register research first) | Wave 1 |
 | **3** | Campaigns (`campaigns`) | `campaign.service` impl, `src/components/campaign/**`, `src/app/(dashboard)/campaigns/**` | Wave 2 |
 | **3** | Creative Studio (`creative-*`) | `creative.service` impl, `src/components/creative/**`, `src/app/(dashboard)/creatives/**`, `creative-images` storage | Wave 2 |
-| **4** | Landing Pages (`landing-*`) | `landing.service` impl, `src/components/landing-page/**`, `src/app/(dashboard)/landing-pages/**`, `src/app/lp/**`, `src/app/api/lead`, `src/app/api/page-view` | Wave 3 |
-| **4** | Performance Intelligence (`analytics-*`) | `analytics.service` impl, `src/lib/analytics/**`, `src/components/analytics/**`, `src/app/(dashboard)/analytics/**` | Wave 3 |
+| **4** | (done) Landing Pages (`landing-*`) | `landing.service` impl, `src/lib/landing/**`, `src/components/landing-page/**`, `src/app/(dashboard)/landing-pages/**`, `src/app/lp/**`, `src/app/api/leads`, `src/app/api/page-views` | Wave 3 |
+| **4** | (done) Performance Intelligence (`analytics-*`) | `analytics.service` impl, `src/lib/analytics/**`, `src/lib/seed/**`, `src/components/analytics/**`, `src/app/(dashboard)/analytics/**` | Wave 3 |
 | **5** | Agent orchestration + demo seed + integration | `src/lib/seed/**`, cross-module wiring, command palette, a11y | Waves 2-4 |
 | **6** | Ship | Vercel deploy, README (3 answers), demo walkthrough, perf pass | Wave 5 |
 
@@ -154,6 +183,21 @@ A module is **not done** until all of the following are true (evidence shown, no
 
 ---
 
+## Carry-Forward (must address in a later wave)
+
+- **Canonical demo identity (Wave 6 demo-seed).** Modules currently seed the demo under **different**
+  campaign ids - the campaign store, Creative Studio, the analytics "adoption" bridge, and landing
+  (which reuses creative's demo campaign) don't share one id. The Wave 6 demo-seed **must establish ONE
+  canonical seeded campaign id** that research -> creatives -> landing -> analytics all reference, so
+  judges see a single coherent campaign instead of several disconnected "demo" campaigns. **Until then,
+  analytics adopts creatives into the headline campaign as a bridge** - a deliberate stopgap, not the
+  intended design. See [learnings](./learnings.md) (Wave 4).
+- **Bright Data Scraping Browser wiring (Wave 5).** Live-configured in env (Web Unlocker `mcp_unlocker`,
+  SERP `serp_api1`, Scraping Browser WSS) but **not yet wired into code**. Wire `puppeteer-core` into
+  the competitor-ads / social providers and validate a live SERP (`brd_json`) / Unlocker round-trip.
+
+---
+
 ## Change Log
 
 - **2026-06-28** - Wave 0 Foundation baselined: scaffold + tooling, Supabase schema/design
@@ -172,3 +216,13 @@ A module is **not done** until all of the following are true (evidence shown, no
   Server/Client boundaries were already clean). Bright Data is now **live-configured** (Web Unlocker
   `mcp_unlocker`, SERP `serp_api1`, Scraping Browser WSS in env, not yet wired into code). Committed as
   Conventional Commits and pushed to `origin/main`. Next: Wave 4 (Landing Pages + Analytics).
+- **2026-06-30** - Wave 4 integrated: **Landing Pages** + **Performance Intelligence (Analytics)**
+  (built by two parallel workers) merged in one pass. Full gate re-run fresh: `tsc` (0), `lint` (0),
+  `npm test` (**337 passing**, 42 files), `npm run build` (success - the real integration gate that
+  neither worker had run) - **no build-only fixes required** (clean Server/Client boundaries; `/lp/[slug]`
+  dynamically server-rendered; `/api/leads` + `/api/page-views` route handlers resolve cleanly). This
+  completes **all five product modules + the Operator agent**. Logged two learnings (`URL.origin` is the
+  string `"null"` for non-HTTP schemes -> the referrer-cleaning fix; per-module independent demo seeding
+  drifts campaign ids apart -> need a canonical Wave 6 seed) and a Carry-Forward note. Committed as
+  Conventional Commits and pushed to `origin/main`. Next: Wave 5 (Agent tool-wiring + Bright Data
+  Scraping Browser + live-data validation).
