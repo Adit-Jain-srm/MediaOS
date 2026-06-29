@@ -10,10 +10,12 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "smoke:azure": "node scripts/smoke-azure.mjs"
   },
   "dependencies": {
     "@ai-sdk/azure": "^4.0.2",
+    "@ai-sdk/openai": "4.0.2",
     "@base-ui/react": "^1.6.0",
     "@phosphor-icons/react": "^2.1.10",
     "@supabase/ssr": "^0.12.0",
