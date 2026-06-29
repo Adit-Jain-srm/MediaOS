@@ -71,3 +71,46 @@ describe("env loader", () => {
     expect(env.isBrightDataConfigured()).toBe(true);
   });
 });
+
+describe("isAzureConfigured (Foundry v1 surface)", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.resetModules();
+  });
+
+  it("is configured from the v1 base URL + key alone (no resource endpoint)", async () => {
+    vi.stubEnv("AZURE_OPENAI_ENDPOINT", "");
+    vi.stubEnv("AZURE_OPENAI_BASE_URL", "https://res.services.ai.azure.com/openai/v1");
+    vi.stubEnv("AZURE_OPENAI_API_KEY", "real-azure-key");
+
+    const env = await import("./env");
+    expect(env.isAzureConfigured()).toBe(true);
+  });
+
+  it("is configured from the resource endpoint + key when no base URL is set", async () => {
+    vi.stubEnv("AZURE_OPENAI_ENDPOINT", "https://res.services.ai.azure.com");
+    vi.stubEnv("AZURE_OPENAI_BASE_URL", "");
+    vi.stubEnv("AZURE_OPENAI_API_KEY", "real-azure-key");
+
+    const env = await import("./env");
+    expect(env.isAzureConfigured()).toBe(true);
+  });
+
+  it("is NOT configured when the key is missing even with a base URL", async () => {
+    vi.stubEnv("AZURE_OPENAI_ENDPOINT", "");
+    vi.stubEnv("AZURE_OPENAI_BASE_URL", "https://res.services.ai.azure.com/openai/v1");
+    vi.stubEnv("AZURE_OPENAI_API_KEY", "");
+
+    const env = await import("./env");
+    expect(env.isAzureConfigured()).toBe(false);
+  });
+
+  it("is NOT configured when the key is present but no base URL or endpoint", async () => {
+    vi.stubEnv("AZURE_OPENAI_ENDPOINT", "");
+    vi.stubEnv("AZURE_OPENAI_BASE_URL", "");
+    vi.stubEnv("AZURE_OPENAI_API_KEY", "real-azure-key");
+
+    const env = await import("./env");
+    expect(env.isAzureConfigured()).toBe(false);
+  });
+});
