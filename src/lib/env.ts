@@ -18,12 +18,23 @@ const envSchema = z.object({
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().default(""),
   SUPABASE_SERVICE_ROLE_KEY: z.string().default(""),
 
-  // Azure OpenAI
+  // Azure AI Foundry (OpenAI-compatible v1 surface - services.ai.azure.com).
+  // Chat + image share one key. See Docs/azure-models.md.
   AZURE_OPENAI_ENDPOINT: z.string().default(""),
   AZURE_OPENAI_API_KEY: z.string().default(""),
-  AZURE_OPENAI_GPT4O_DEPLOYMENT: z.string().min(1).default("gpt-4o"),
-  AZURE_OPENAI_IMAGE_DEPLOYMENT: z.string().min(1).default("gpt-image-2"),
-  AZURE_OPENAI_API_VERSION: z.string().min(1).default("2024-10-21"),
+  // OpenAI-compatible v1 base URL (`.../openai/v1`). When blank it is derived
+  // from AZURE_OPENAI_ENDPOINT at call time.
+  AZURE_OPENAI_BASE_URL: z.string().default(""),
+  // Chat/reasoning deployment. The legacy *_GPT4O_DEPLOYMENT key is kept for
+  // backward compatibility; *_CHAT_DEPLOYMENT is the v1-aligned name.
+  AZURE_OPENAI_GPT4O_DEPLOYMENT: z.string().min(1).default("gpt-5.3-chat"),
+  AZURE_OPENAI_CHAT_DEPLOYMENT: z.string().default(""),
+  AZURE_OPENAI_IMAGE_DEPLOYMENT: z.string().min(1).default("MAI-Image-2.5"),
+  // Full image generations URL. When blank it is derived from the base URL.
+  AZURE_OPENAI_IMAGE_ENDPOINT: z.string().default(""),
+  AZURE_OPENAI_API_VERSION: z.string().min(1).default("preview"),
+  // Project endpoint (responses API). Optional; not required by the v1 path.
+  AZURE_AI_PROJECT_ENDPOINT: z.string().default(""),
 
   // Bright Data MCP
   BRIGHTDATA_API_TOKEN: z.string().default(""),
@@ -55,9 +66,13 @@ export function getEnv(): Env {
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
     AZURE_OPENAI_ENDPOINT: process.env.AZURE_OPENAI_ENDPOINT,
     AZURE_OPENAI_API_KEY: process.env.AZURE_OPENAI_API_KEY,
+    AZURE_OPENAI_BASE_URL: process.env.AZURE_OPENAI_BASE_URL,
     AZURE_OPENAI_GPT4O_DEPLOYMENT: process.env.AZURE_OPENAI_GPT4O_DEPLOYMENT,
+    AZURE_OPENAI_CHAT_DEPLOYMENT: process.env.AZURE_OPENAI_CHAT_DEPLOYMENT,
     AZURE_OPENAI_IMAGE_DEPLOYMENT: process.env.AZURE_OPENAI_IMAGE_DEPLOYMENT,
+    AZURE_OPENAI_IMAGE_ENDPOINT: process.env.AZURE_OPENAI_IMAGE_ENDPOINT,
     AZURE_OPENAI_API_VERSION: process.env.AZURE_OPENAI_API_VERSION,
+    AZURE_AI_PROJECT_ENDPOINT: process.env.AZURE_AI_PROJECT_ENDPOINT,
     BRIGHTDATA_API_TOKEN: process.env.BRIGHTDATA_API_TOKEN,
     BRIGHTDATA_WEB_UNLOCKER_ZONE: process.env.BRIGHTDATA_WEB_UNLOCKER_ZONE,
     BRIGHTDATA_SERP_ZONE: process.env.BRIGHTDATA_SERP_ZONE,
@@ -96,9 +111,16 @@ export function isSupabaseAdminConfigured(): boolean {
   return isSupabaseConfigured() && !isMissing(getEnv().SUPABASE_SERVICE_ROLE_KEY);
 }
 
+/**
+ * Azure AI Foundry (v1 surface) is usable once we have a key plus a base URL to
+ * reach it - either the explicit `AZURE_OPENAI_BASE_URL` or the resource
+ * `AZURE_OPENAI_ENDPOINT` we derive `.../openai/v1` from. The chat deployment
+ * always resolves (it has a non-empty default), so it is not gating here.
+ */
 export function isAzureConfigured(): boolean {
   const e = getEnv();
-  return !isMissing(e.AZURE_OPENAI_ENDPOINT) && !isMissing(e.AZURE_OPENAI_API_KEY);
+  if (isMissing(e.AZURE_OPENAI_API_KEY)) return false;
+  return !isMissing(e.AZURE_OPENAI_BASE_URL) || !isMissing(e.AZURE_OPENAI_ENDPOINT);
 }
 
 export function isBrightDataConfigured(): boolean {
