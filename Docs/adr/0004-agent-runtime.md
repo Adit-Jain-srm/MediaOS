@@ -74,6 +74,24 @@ and `summarize_context` (grounds the run in the conversation/campaign). Real mod
 creative, landing, analytics, campaign) are added in the `agent-tools` phase by registering more tools
 on the same registry - **the runtime never changes**.
 
+### Module tools (agent-tools / agent-integration phase — realized)
+
+The full capability set now lives in `src/lib/agent/tools/` and is registered idempotently by
+`registerModuleTools()` (`tools/index.ts`), which the route bootstraps alongside `registerBuiltinTools()`.
+17 typed tools wrap the module services (research, campaign, creative, landing, analytics); each is
+Zod-validated and **fail-safe** (every `execute` body runs inside `runToolSafely`, returning a
+structured `{ ok: false }` rather than throwing). Tools map their rich domain output to **flat,
+render-ready artifact shapes** in the PURE `tools/artifacts.ts`, which the client artifact registry
+(`artifact-view.tsx`) renders as per-type cards — keeping the server/client boundary clean. The
+system prompt (`OPERATOR_WORKFLOW`) teaches the end-to-end **golden path** (research → campaign →
+creatives → landing → analytics), the step budget was raised to 16 to fit the full chain, and a
+`proactive_briefing` tool plus `suggestionsFromArtifacts` wire the analytics-driven improvement loop
+to one-tap follow-up chips. Two notes were respected, not changed: the runtime, streaming protocol,
+and UI registry are unchanged (adding a tool is still local); and the demo divergence of the two
+seeded demo-campaign ids (campaign/analytics vs. creative/landing) is documented in `tools/shared.ts`
+and surfaced as two fallback constants. Full catalog, workflow, artifact types, and the "add a tool"
+guide: **[operator-tools](../operator-tools.md)**.
+
 ### Persistence (fail-safe, injectable)
 
 `src/lib/agent/persistence.ts` writes conversations, messages, and runs to

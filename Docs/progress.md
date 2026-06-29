@@ -108,8 +108,37 @@ pushed to `origin/main`.
 **All five product modules (Research, Campaigns, Creative Studio, Landing Pages, Performance
 Intelligence) plus the Operator agent are now complete, verified, and committed.**
 
-**Next:** Wave 5 - Agent tool-wiring (expose every module as Operator tools) + Bright Data Scraping
-Browser integration + live-data validation. Then Wave 6 (demo seed + ship).
+**Wave 5 - Operator tool-wiring + end-to-end orchestration (agent-tools + agent-integration): DONE, verified, committed.**
+
+Delivered (`src/lib/agent/tools/**`, `src/components/agent/artifact-view.tsx`, `src/lib/agent/{prompts,plan,runtime}.ts`,
+`src/app/api/operator/chat/route.ts`): **17 typed, Zod-validated module tools** wrapping every module
+service (research `research_audience`/`get_personas`; campaign `create_campaign`/`recommend_platforms`/
+`suggest_budget`/`list_campaigns`/`get_campaign`; creative `generate_creatives`/`score_creative`/
+`regenerate_creative`; landing `build_landing_page`/`deploy_landing_page`; analytics
+`get_performance_summary`/`detect_anomalies`/`get_recommendations`/`daily_brief`/`proactive_briefing`),
+each **fail-safe** (`runToolSafely` → structured `{ ok:false }`, never throws) and registered idempotently
+via `registerModuleTools()` (bootstrapped beside the built-ins in the route). The system prompt now teaches
+the **golden path** (research → campaign → creatives → landing → analytics); the runtime step budget was
+raised to 16 for the full chain; demo mode runs a scripted golden path that executes the real tools offline.
+Rich per-type **artifact cards** were added to the client registry (personas, creative variants with hook
+badges + scores, landing preview + live link, analytics summary/anomalies/recommendations, proactive
+briefing). Proactive intelligence + improvement loop: `proactive_briefing` fuses brief + anomalies +
+recommendations and emits one-tap next-actions that the runtime surfaces as suggestion chips
+(`suggestionsFromArtifacts`); `regenerate_creative` repairs the weakest creative. See
+[operator-tools](./operator-tools.md) + [ADR 0004](./adr/0004-agent-runtime.md).
+
+Verification (fresh run, committer/integration gate): `npx tsc --noEmit` (0 errors), `npm run lint`
+(0 errors), `npm test` (**376 passing**, 43 files - up from 337; +39 in `tools/module-tools.test.ts`),
+and `npm run build` (**success** - the real integration gate that the capstone worker had not run).
+**No build-only fixes were needed**: the server/client boundary was already clean - tool `execute`
+bodies stay server-side (registered via `registerModuleTools()` in the route), domain output is mapped
+to flat render-ready shapes in the PURE `tools/artifacts.ts`, and the client artifact registry
+(`artifact-view.tsx`) renders the per-type cards. Committed as Conventional Commits and pushed to
+`origin/main`.
+
+**Next:** Wave 6 - **Azure AI Foundry client adaptation + live validation** (`gpt-5.3-chat`,
+`MAI-Image-2.5` on the OpenAI-compatible `/openai/v1` surface), then **Bright Data Scraping Browser +
+live-data validation**, then the **canonical demo seed**, integration/polish, and ship.
 
 ---
 
@@ -192,7 +221,17 @@ A module is **not done** until all of the following are true (evidence shown, no
   judges see a single coherent campaign instead of several disconnected "demo" campaigns. **Until then,
   analytics adopts creatives into the headline campaign as a bridge** - a deliberate stopgap, not the
   intended design. See [learnings](./learnings.md) (Wave 4).
-- **Bright Data Scraping Browser wiring (Wave 5).** Live-configured in env (Web Unlocker `mcp_unlocker`,
+- **Azure AI Foundry client adaptation (Wave 6).** The provisioned models (`gpt-5.3-chat`,
+  `MAI-Image-2.5`) live on the Foundry **OpenAI-compatible `v1` surface**
+  (`https://<resource>.services.ai.azure.com/openai/v1`; shared key in git-ignored `.env.local`), but
+  `src/lib/ai/azure.ts` still targets **classic** Azure OpenAI (`*.openai.azure.com` + deployment +
+  `api-version`). **Env wired, code NOT wired.** Adapt chat to an OpenAI-compatible client
+  (model id `gpt-5.3-chat`), adapt `generateImage` to the `MAI-Image-2.5` images/generations endpoint
+  (`Authorization: Bearer`, parse `data[0].b64_json` PNG), add the new env keys
+  (`AZURE_OPENAI_BASE_URL`, `AZURE_OPENAI_CHAT_DEPLOYMENT`, `AZURE_OPENAI_IMAGE_ENDPOINT`,
+  `AZURE_AI_PROJECT_ENDPOINT`) to `src/lib/env.ts`, then live-validate both models end to end. See
+  [azure-models](./azure-models.md).
+- **Bright Data Scraping Browser wiring (Wave 6).** Live-configured in env (Web Unlocker `mcp_unlocker`,
   SERP `serp_api1`, Scraping Browser WSS) but **not yet wired into code**. Wire `puppeteer-core` into
   the competitor-ads / social providers and validate a live SERP (`brd_json`) / Unlocker round-trip.
 
@@ -226,3 +265,17 @@ A module is **not done** until all of the following are true (evidence shown, no
   drifts campaign ids apart -> need a canonical Wave 6 seed) and a Carry-Forward note. Committed as
   Conventional Commits and pushed to `origin/main`. Next: Wave 5 (Agent tool-wiring + Bright Data
   Scraping Browser + live-data validation).
+- **2026-06-30** - Wave 5 integrated (Operator tool-wiring + end-to-end orchestration): **17 typed,
+  Zod-validated, fail-safe module tools** wrapping every module service, registered idempotently via
+  `registerModuleTools()`; the system prompt now teaches the **golden path** (research → campaign →
+  creatives → landing → analytics), the runtime step budget was raised to 16, demo mode runs a scripted
+  golden path offline, and rich per-type **artifact cards** + `proactive_briefing`/`suggestionsFromArtifacts`
+  wire the improvement loop. Committer/integration gate re-run fresh: `tsc` (0), `lint` (0), `npm test`
+  (**376 passing**, 43 files - up from 337), `npm run build` (**success** - the real gate the capstone
+  worker had not run) - **no build-only fixes required** (server/client boundary already clean: tool
+  `execute` stays server-side, artifacts mapped to flat shapes in PURE `tools/artifacts.ts`, client
+  registry renders cards). Added `Docs/operator-tools.md`, an ADR 0004 addendum, and `Docs/azure-models.md`
+  (Azure AI Foundry v1 surface - **env wired, code NOT wired**, deferred to Wave 6). Committed as
+  Conventional Commits and pushed to `origin/main`. Next: Wave 6 - Azure AI Foundry client adaptation +
+  live validation, then Bright Data Scraping Browser + live-data validation, then canonical demo seed,
+  integration/polish, ship.
