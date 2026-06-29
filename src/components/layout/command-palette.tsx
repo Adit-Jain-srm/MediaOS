@@ -7,6 +7,7 @@ import { Desktop, Moon, Sun } from "@phosphor-icons/react";
 
 import { NAV_ROUTES } from "@/lib/nav";
 import { getRegisteredCommandActions } from "@/lib/command-actions";
+import "@/lib/command-actions-init";
 import { useUiStore } from "@/stores/ui-store";
 import {
   CommandDialog,
