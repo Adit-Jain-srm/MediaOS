@@ -163,3 +163,50 @@ Never repeat a class of mistake twice.
   real fix to the Wave 6 demo-seed (establish the shared id at seed time); until then, document the
   adoption bridge as a known stopgap so it isn't mistaken for the intended design. See the
   CARRY-FORWARD note in [progress](./progress.md).
+
+---
+
+## 2026-06-30 - Wave 6 (Azure AI Foundry v1 client adaptation + live validation)
+
+### Azure AI Foundry v1 surface is NOT classic Azure OpenAI - use the OpenAI provider
+- **Problem:** The provisioned models live on `*.services.ai.azure.com/openai/v1`, but the client was
+  built on `@ai-sdk/azure`'s `createAzure({ useDeploymentBasedUrls: true })` + the `api-key` header,
+  which targets the classic `*.openai.azure.com/openai/deployments/{deployment}/...?api-version=` scheme.
+  Pointed at the v1 base it would build the wrong URLs and use the wrong auth header.
+- **Root cause:** Foundry's v1 surface is **OpenAI-wire-compatible**: standard
+  `Authorization: Bearer <key>`, no `api-version` query param, and the OpenAI-style `model` argument is
+  the **deployment name**. The Azure provider's whole point (deployment URL rewriting + `api-key`) is
+  exactly what this surface does *not* want.
+- **Rule:** For `services.ai.azure.com/openai/v1`, use `@ai-sdk/openai`'s
+  `createOpenAI({ baseURL: <.../openai/v1>, apiKey })` and `provider.chat(deploymentName)` for
+  chat-completions (keeps `streamText`/`generateText` + tool-calling). Pin the provider to the version
+  that shares `@ai-sdk/provider`/`@ai-sdk/provider-utils` with the installed `ai` (`@ai-sdk/openai@4.0.2`
+  ↔ `ai@7.0.4`, both on `@ai-sdk/provider@4.0.0` + `@ai-sdk/provider-utils@5.0.1`) - mismatched provider
+  majors break the `LanguageModelV*` types. Keep the exported client signatures stable so no consumer
+  changes.
+
+### MAI-Image-2.5 lives on `/mai/v1`, and `output_format` is a MIME type
+- **Problem:** Image generation failed twice before working: `output_format: "png"` → HTTP 400
+  (`invalid value: png`), and once that was fixed, `/openai/v1/images/generations` → HTTP 404 (an Azure
+  ML HTML "Not Found" page) *after* passing input validation.
+- **Root cause:** The MAI image model's input validator runs at the `/openai/v1` gateway (hence the 400
+  is JSON), but the actual generation backend is served at **`/mai/v1/images/generations`** - the
+  `/openai/v1` path 404s on the generate step. And `output_format` only accepts MIME types
+  (`image/png|image/jpeg|image/webp` or `null`), not the bare `png` that classic gpt-image used. The
+  provisioning doc's curl example (`/openai/v1/...`, `output_format: png`) was wrong; **the live API is
+  the source of truth.**
+- **Rule:** POST image gen to `.../mai/v1/images/generations` with `output_format: "image/png"`. When
+  deriving the endpoint from the base URL, rewrite `/openai/v1` → `/mai/v1`. Always live-probe a new
+  image surface (a 400 means "reached + validated"; a 404 after that means "wrong generate path") rather
+  than trusting written examples.
+
+### The AI SDK treats `gpt-5.3-chat` as a reasoning model and drops `temperature`
+- **Problem:** Chat calls succeed but emit `AI SDK Warning ... "temperature" is not supported ...
+  temperature is not supported for reasoning models`, so the copy generator's `0.8` and the planner's
+  `0.2` temperatures are silently ignored.
+- **Root cause:** `@ai-sdk/openai`'s chat model classifies `gpt-5*` ids as reasoning models and strips
+  unsupported sampling params (it sends `max_completion_tokens`, omits `temperature`). The `-chat`
+  suffix does not exempt our custom deployment name from that heuristic.
+- **Rule:** Treat this as expected/graceful - the call still returns text, so no code change is needed;
+  just don't rely on `temperature` steering output diversity for this model. If determinism/diversity
+  ever matters, switch to a non-reasoning chat deployment or vary the prompt, not the temperature.

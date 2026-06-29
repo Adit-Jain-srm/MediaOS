@@ -3,15 +3,17 @@
 How MediaOS's AI capabilities (Operator reasoning/copy + Creative Studio visuals) map
 onto the Azure AI Foundry models the user provisioned. **This is the Azure AI Foundry
 OpenAI-compatible `v1` surface (`services.ai.azure.com`), which is _different_ from
-classic Azure OpenAI (`*.openai.azure.com`).** The current
-[`src/lib/ai/azure.ts`](../src/lib/ai/azure.ts) is built for the classic surface and
-must be adapted before the app can call these models (see
-[MediaOS integration TODO](#5-mediaos-integration-todo)).
+classic Azure OpenAI (`*.openai.azure.com`).** [`src/lib/ai/azure.ts`](../src/lib/ai/azure.ts) has been **adapted** to this surface
+(see [§5 integration](#5-mediaos-integration-done)).
 
-> Status: **env wired, code NOT wired.** The app will keep running in degraded
-> ("configure credentials") mode for AI features until `azure.ts` and `env.ts` are
-> adapted. These changes are deferred to a dedicated worker after the Operator
-> capstone completes.
+> Status: **env wired, code wired, LIVE-VALIDATED (2026-06-30).** Real AI is now
+> active: chat (`gpt-5.3-chat`) and image (`MAI-Image-2.5`) both respond against the
+> live Foundry v1 surface (`npm run smoke:azure` green). The app only degrades to the
+> seeded "configure credentials" mode when the key/base URL are absent. The two live
+> corrections vs. the originally documented shape are recorded inline below:
+> the image endpoint is **`/mai/v1/images/generations`** (the `/openai/v1/...` form
+> validates input but 404s on generation) and `output_format` must be a **MIME type**
+> (`image/png`), not the bare `png`.
 
 ---
 
@@ -23,7 +25,8 @@ must be adapted before the app can call these models (see
 | OpenAI-compatible v1 base | `https://aditjain2005-0132-resource.services.ai.azure.com/openai/v1` |
 | Project endpoint | `https://aditjain2005-0132-resource.services.ai.azure.com/api/projects/aditjain2005-0132` |
 | Responses endpoint | `https://aditjain2005-0132-resource.services.ai.azure.com/api/projects/aditjain2005-0132/openai/v1/responses` |
-| Image generations endpoint | `https://aditjain2005-0132-resource.services.ai.azure.com/openai/v1/images/generations` |
+| Image generations endpoint (WORKING) | `https://aditjain2005-0132-resource.services.ai.azure.com/mai/v1/images/generations` |
+| Image generations endpoint (validates input, 404s on generation) | `https://aditjain2005-0132-resource.services.ai.azure.com/openai/v1/images/generations` |
 | API version | `preview` |
 | API key (shared by both models) | `1284...g4Xs` — **masked here on purpose; the real key lives only in git-ignored `.env.local`. Rotate it (the user will rotate).** |
 
@@ -46,11 +49,15 @@ must be adapted before the app can call these models (see
 
 ### Image — `MAI-Image-2.5`
 - **Deployment name:** `MAI-Image-2.5`
-- **Endpoint:**
-  `https://aditjain2005-0132-resource.services.ai.azure.com/openai/v1/images/generations`
-  (an alternate `.../mai/v1/images/generations` form also works)
+- **Endpoint (live-confirmed working):**
+  `https://aditjain2005-0132-resource.services.ai.azure.com/mai/v1/images/generations`
+  — the `/openai/v1/images/generations` form passes input validation but returns
+  **HTTP 404** on the actual generation, so MediaOS uses the `/mai/v1/...` form.
+- **`output_format` is a MIME type:** allowed values are `image/png`, `image/jpeg`,
+  `image/webp` (or `null`). The bare `png` string is rejected with HTTP 400. MediaOS
+  sends `image/png`.
 - **Response shape:** returns `data[0].b64_json` (base64 PNG bytes, no `data:` prefix).
-- **Supports:** `size`, `n`, `output_format`, `output_compression`.
+- **Auth:** `Authorization: Bearer <key>`.
 
 ---
 
@@ -119,40 +126,43 @@ The equivalent in JS/TS uses the `openai` package with `baseURL` + `apiKey` and
 
 ---
 
-## 5. MediaOS integration TODO
+## 5. MediaOS integration (DONE)
 
-These are **deferred** to a dedicated worker after the Operator capstone completes. The
-app does **not** call these models until they are done.
+**Completed + live-validated 2026-06-30.** `src/lib/ai/azure.ts` and `src/lib/env.ts`
+now target the Foundry v1 surface; the exported client signatures
+(`getChatModel`/`generateChat`/`streamChat`/`generateImage`) are unchanged so no consumer
+in `research`/`campaign`/`creative`/`landing`/`analytics`/`agent` needed edits.
 
-1. **Adapt chat in `src/lib/ai/azure.ts` to the v1 base URL.** The current code uses
-   `@ai-sdk/azure`'s `createAzure({ baseURL: \`${endpoint}/openai\`, apiVersion, useDeploymentBasedUrls: true })`,
-   which targets the classic deployment-based URL scheme. For the Foundry v1 surface,
-   switch to an OpenAI-compatible provider (e.g. `@ai-sdk/openai`'s `createOpenAI`, or
-   the `openai` SDK directly) configured with
-   `baseURL = AZURE_OPENAI_BASE_URL` (`.../openai/v1`) + `apiKey = AZURE_OPENAI_API_KEY`,
-   and use the **deployment name** (`gpt-5.3-chat`) as the model id. Prefer the responses
-   API where available; chat completions also work on this base.
-2. **Adapt `generateImage` to the `MAI-Image-2.5` endpoint + response shape.** Replace
-   the classic URL
-   (`${endpoint}/openai/deployments/${deployment}/images/generations?api-version=...`)
-   with `AZURE_OPENAI_IMAGE_ENDPOINT`
-   (`.../openai/v1/images/generations`). Send `model = MAI-Image-2.5` in the body, use
-   `Authorization: Bearer <key>` (the v1 surface), and keep parsing `data[0].b64_json`
-   (PNG). The existing `AzureImageApiResponse` shape (`data[].b64_json`) already matches.
-   Consider exposing `output_format` / `output_compression`.
-3. **Add the new env keys to the `src/lib/env.ts` schema.** Add
-   `AZURE_OPENAI_BASE_URL`, `AZURE_OPENAI_CHAT_DEPLOYMENT`, `AZURE_OPENAI_IMAGE_ENDPOINT`,
-   and `AZURE_AI_PROJECT_ENDPOINT` to `envSchema` + the `getEnv()` parse object (with safe
-   defaults so the app still boots), and update `AZURE_OPENAI_API_VERSION`'s default to
-   `preview`. Optionally derive `AZURE_OPENAI_BASE_URL`/`AZURE_OPENAI_IMAGE_ENDPOINT` from
+1. **Chat — DONE.** Swapped `@ai-sdk/azure`'s `createAzure(...)` for
+   `@ai-sdk/openai`'s `createOpenAI({ baseURL: AZURE_OPENAI_BASE_URL, apiKey: AZURE_OPENAI_API_KEY })`
+   and target the **chat-completions** transport via `provider.chat("gpt-5.3-chat")`
+   (the simplest path that keeps `streamText`/`generateText` + tool-calling working). A
+   `CHAT_TRANSPORT` constant can be flipped to `"responses"` (`provider.responses(...)`)
+   if a future model requires it. `@ai-sdk/openai@4.0.2` pairs exactly with `ai@7.0.4`
+   (both use `@ai-sdk/provider@4.0.0` + `@ai-sdk/provider-utils@5.0.1`).
+   - **Quirk:** the AI SDK classifies `gpt-5.3-chat` as a **reasoning model** and drops
+     `temperature` (logs an `unsupported`/`temperature` warning). Calls still succeed; the
+     copy/planner temperatures are silently ignored. No action needed — graceful.
+2. **Image — DONE.** `generateImage` POSTs to `AZURE_OPENAI_IMAGE_ENDPOINT`
+   (**`/mai/v1/images/generations`** — see §2) with `Authorization: Bearer <key>`, body
+   `{ prompt, model: "MAI-Image-2.5", n, size, output_format: "image/png" }`, parsing
+   `data[0].b64_json`. Two live corrections vs. the original spec: the working endpoint is
+   `/mai/v1/...` (not `/openai/v1/...`), and `output_format` must be the MIME `image/png`
+   (not bare `png`). `output_compression` is not sent.
+3. **Env — DONE.** Added `AZURE_OPENAI_BASE_URL`, `AZURE_OPENAI_CHAT_DEPLOYMENT`,
+   `AZURE_OPENAI_IMAGE_ENDPOINT`, `AZURE_AI_PROJECT_ENDPOINT` (optional, safe defaults),
+   bumped `AZURE_OPENAI_API_VERSION` default to `preview`, and made `isAzureConfigured()`
+   gate on key + (base URL or endpoint). The base URL / image endpoint are derived from
    `AZURE_OPENAI_ENDPOINT` when blank.
-4. **Live-validate both models** end to end: a real chat completion through the Operator
-   path and a real image generation through Creative Studio, confirming `b64_json` decodes
-   to a valid PNG and uploads to Supabase Storage.
+4. **Live validation — DONE.** `npm run smoke:azure` (creds-gated, NOT in CI/test suite)
+   exercises both models against the real `.env.local` key: chat returns `"ok"`; image
+   returns a valid base64 PNG (decoded + PNG magic verified, written to the git-ignored
+   `scripts/.smoke-out.png`). The committed Vitest suite stays fully mocked + offline
+   (`src/lib/ai/azure.test.ts`, `src/lib/env.test.ts`).
 
 > Auth header note: classic Azure OpenAI uses the `api-key` header; the Foundry v1 surface
-> uses standard OpenAI `Authorization: Bearer <key>`. The adaptation in steps 1–2 must
-> switch the image helper's header accordingly.
+> uses standard OpenAI `Authorization: Bearer <key>` — `createOpenAI({ apiKey })` sets it
+> for chat and the image helper sets it explicitly.
 
 ---
 
@@ -229,16 +239,14 @@ curl -X POST \
 > `$AZURE_API_KEY` is the masked `1284...g4Xs` key, read from the environment — never
 > hard-code the real key.
 
-### Integration implication for `src/lib/ai/azure.ts` (DEFERRED)
+### Integration implication for `src/lib/ai/azure.ts` (DONE)
 
-> This remains **DEFERRED** until after the Operator capstone completes (consistent with
-> [§5 MediaOS integration TODO](#5-mediaos-integration-todo)).
+> **DONE + live-validated 2026-06-30** (see [§5](#5-mediaos-integration-done)).
 
-- **Chat:** use an OpenAI-compatible client — either the AI SDK `@ai-sdk/openai`
+- **Chat:** `@ai-sdk/openai`'s
   `createOpenAI({ baseURL: "https://aditjain2005-0132-resource.services.ai.azure.com/openai/v1", apiKey })`
-  with model id `gpt-5.3-chat`, or the `openai` SDK directly. The `responses` API is
-  available, but **chat-completions on the same `/openai/v1` base is the simpler AI-SDK
-  path**.
-- **Image:** `POST` to the `images/generations` endpoint with `Authorization: Bearer`,
-  model `MAI-Image-2.5`, and decode `data[0].b64_json` (base64 PNG).
-- **No `api-version` query param** is needed for the `/openai/v1` surface.
+  with `provider.chat("gpt-5.3-chat")` (chat-completions). `provider.responses(...)` is
+  the drop-in alternative behind the `CHAT_TRANSPORT` constant.
+- **Image:** `POST` to **`.../mai/v1/images/generations`** with `Authorization: Bearer`,
+  model `MAI-Image-2.5`, `output_format: "image/png"`, decoding `data[0].b64_json`.
+- **No `api-version` query param** is needed for the v1 surface.

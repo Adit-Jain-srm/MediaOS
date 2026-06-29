@@ -136,9 +136,40 @@ to flat render-ready shapes in the PURE `tools/artifacts.ts`, and the client art
 (`artifact-view.tsx`) renders the per-type cards. Committed as Conventional Commits and pushed to
 `origin/main`.
 
-**Next:** Wave 6 - **Azure AI Foundry client adaptation + live validation** (`gpt-5.3-chat`,
-`MAI-Image-2.5` on the OpenAI-compatible `/openai/v1` surface), then **Bright Data Scraping Browser +
-live-data validation**, then the **canonical demo seed**, integration/polish, and ship.
+**Wave 6 (part 1) - Azure AI Foundry client adaptation + LIVE validation: DONE, verified, committed, LIVE-VALIDATED.**
+
+Flipped the platform from seeded fallbacks to **real AI**. `src/lib/ai/azure.ts` was rewired from
+classic Azure OpenAI (`@ai-sdk/azure` deployment URLs + `api-key` header) to the **Foundry
+OpenAI-compatible v1 surface**: chat now uses `@ai-sdk/openai`'s
+`createOpenAI({ baseURL: AZURE_OPENAI_BASE_URL, apiKey })` with the **chat-completions** transport
+(`provider.chat("gpt-5.3-chat")`) - the simplest path that keeps `streamText`/`generateText` +
+tool-calling working - behind a `CHAT_TRANSPORT` constant that flips to the Responses API if ever
+needed; image gen POSTs to the image endpoint with `Authorization: Bearer`, body
+`{ prompt, model: "MAI-Image-2.5", n, size, output_format: "image/png" }`, parsing `data[0].b64_json`.
+`src/lib/env.ts` gained the new optional keys (`AZURE_OPENAI_BASE_URL`, `AZURE_OPENAI_CHAT_DEPLOYMENT`,
+`AZURE_OPENAI_IMAGE_ENDPOINT`, `AZURE_AI_PROJECT_ENDPOINT`, `preview` default) and `isAzureConfigured()`
+now gates on key + (base URL or endpoint). **All exported client signatures are unchanged**, so no
+consumer in `research`/`campaign`/`creative`/`landing`/`analytics`/`agent` needed edits.
+
+**API path that worked:** chat = **chat-completions** (`provider.chat`), NOT the Responses API.
+Two live corrections vs. the documented shape (the live API is authoritative): the image endpoint is
+**`/mai/v1/images/generations`** (`/openai/v1/images/generations` validates input but **404s** on
+generation), and `output_format` must be a **MIME type** (`image/png`), not bare `png`. Model quirk:
+the AI SDK classifies `gpt-5.3-chat` as a **reasoning model** and drops `temperature` (warns, still
+succeeds). See [learnings](./learnings.md) + [azure-models](./azure-models.md).
+
+**Live validation (creds-gated `npm run smoke:azure`, NOT in CI):** chat `gpt-5.3-chat` returned
+`"ok"` (~2.1s); image `MAI-Image-2.5` returned a valid base64 PNG (decoded + PNG-magic verified,
+written to the git-ignored `scripts/.smoke-out.png`). The **committed test suite stays fully mocked +
+offline** (`src/lib/ai/azure.test.ts`, `src/lib/env.test.ts`).
+
+Verification (fresh run): `npx tsc --noEmit` (0 errors), `npm run lint` (0 errors), `npm test`
+(**390 passing**, 44 files - up from 376; +14 across the new `ai/azure.test.ts` and `env.test.ts`
+additions), `npm run build` (**success**). Dep added: `@ai-sdk/openai@4.0.2` (pairs exactly with
+`ai@7.0.4`). Committed as Conventional Commits and pushed to `origin/main`. **Real AI is now active.**
+
+**Next:** Wave 6 (cont.) - **Bright Data Scraping Browser + live-data validation**, then the
+**canonical demo seed**, integration/polish, and ship.
 
 ---
 
@@ -203,8 +234,8 @@ A module is **not done** until all of the following are true (evidence shown, no
 | Status | Item | Mitigation / Note |
 |---|---|---|
 | OPEN | Bright Data Pro (`web_data_*`) may be inactive | Engine degrades to verified free-tier search+scrape; Pro providers gated by `isAvailable()` |
-| OPEN | Azure image API version (`gpt-image`) | Likely needs a preview `api-version`; configurable via env (learnings) |
-| PARTIAL | Are real credentials in `.env.local`? | Bright Data is live-configured (Web Unlocker `mcp_unlocker`, SERP `serp_api1`, Scraping Browser WSS); still verify Azure/Supabase before live demo / seed |
+| RESOLVED | Azure image API surface | Foundry v1 needs **no `api-version`** query param; image is `/mai/v1/images/generations` with `output_format: image/png`. LIVE-validated 2026-06-30 (learnings) |
+| PARTIAL | Are real credentials in `.env.local`? | **Azure live-validated** (chat + image both respond, `npm run smoke:azure`); Bright Data live-configured; still verify Supabase before live demo / seed |
 | OPEN | Bright Data Scraping Browser not yet wired into code | **Carry-forward (Wave 4/5):** wire the Scraping Browser (`puppeteer-core`) into the competitor-ads / social providers + validate a live SERP (`brd_json`) / Unlocker round-trip during integration |
 | OPEN | Demo seed realism (90-day analytics) | `analytics-seed` phase: fatigue curves, seasonality, platform behaviors |
 | RESOLVED | Git remote | `origin` exists -> https://github.com/Adit-Jain-srm/MediaOS (branch `main`) |
@@ -221,16 +252,12 @@ A module is **not done** until all of the following are true (evidence shown, no
   judges see a single coherent campaign instead of several disconnected "demo" campaigns. **Until then,
   analytics adopts creatives into the headline campaign as a bridge** - a deliberate stopgap, not the
   intended design. See [learnings](./learnings.md) (Wave 4).
-- **Azure AI Foundry client adaptation (Wave 6).** The provisioned models (`gpt-5.3-chat`,
-  `MAI-Image-2.5`) live on the Foundry **OpenAI-compatible `v1` surface**
-  (`https://<resource>.services.ai.azure.com/openai/v1`; shared key in git-ignored `.env.local`), but
-  `src/lib/ai/azure.ts` still targets **classic** Azure OpenAI (`*.openai.azure.com` + deployment +
-  `api-version`). **Env wired, code NOT wired.** Adapt chat to an OpenAI-compatible client
-  (model id `gpt-5.3-chat`), adapt `generateImage` to the `MAI-Image-2.5` images/generations endpoint
-  (`Authorization: Bearer`, parse `data[0].b64_json` PNG), add the new env keys
-  (`AZURE_OPENAI_BASE_URL`, `AZURE_OPENAI_CHAT_DEPLOYMENT`, `AZURE_OPENAI_IMAGE_ENDPOINT`,
-  `AZURE_AI_PROJECT_ENDPOINT`) to `src/lib/env.ts`, then live-validate both models end to end. See
-  [azure-models](./azure-models.md).
+- **Azure AI Foundry client adaptation (Wave 6). DONE + LIVE-VALIDATED 2026-06-30.** `src/lib/ai/azure.ts`
+  + `src/lib/env.ts` now target the Foundry **OpenAI-compatible `v1` surface** (chat via
+  `@ai-sdk/openai` `provider.chat("gpt-5.3-chat")` chat-completions; image via `Authorization: Bearer`
+  POST to `/mai/v1/images/generations` with `output_format: image/png`, parsing `data[0].b64_json`).
+  Both models confirmed responding (`npm run smoke:azure`); exported signatures unchanged; committed
+  suite stays mocked/offline. See [azure-models](./azure-models.md) + [learnings](./learnings.md).
 - **Bright Data Scraping Browser wiring (Wave 6).** Live-configured in env (Web Unlocker `mcp_unlocker`,
   SERP `serp_api1`, Scraping Browser WSS) but **not yet wired into code**. Wire `puppeteer-core` into
   the competitor-ads / social providers and validate a live SERP (`brd_json`) / Unlocker round-trip.
@@ -279,3 +306,17 @@ A module is **not done** until all of the following are true (evidence shown, no
   Conventional Commits and pushed to `origin/main`. Next: Wave 6 - Azure AI Foundry client adaptation +
   live validation, then Bright Data Scraping Browser + live-data validation, then canonical demo seed,
   integration/polish, ship.
+- **2026-06-30** - Wave 6 (part 1) integrated: **Azure AI Foundry client adaptation + LIVE validation**.
+  Rewired `src/lib/ai/azure.ts` from classic Azure OpenAI (`@ai-sdk/azure`, `api-key` header) to the
+  Foundry **OpenAI-compatible v1 surface** - chat via `@ai-sdk/openai` `createOpenAI({ baseURL, apiKey })`
+  + `provider.chat("gpt-5.3-chat")` (chat-completions; `CHAT_TRANSPORT` flips to Responses if needed),
+  image via `Authorization: Bearer` POST to `/mai/v1/images/generations`
+  (`output_format: image/png`, parse `data[0].b64_json`). Added the new optional env keys + `preview`
+  default and tightened `isAzureConfigured()`; **all exported signatures unchanged** (no consumer edits).
+  Dep `@ai-sdk/openai@4.0.2` (exact pair for `ai@7.0.4`). **LIVE-validated** both models with the real
+  key (`npm run smoke:azure`, creds-gated, not in CI): chat -> `"ok"`, image -> valid base64 PNG.
+  Live findings vs. docs: image endpoint is `/mai/v1/...` (the `/openai/v1/...` form 404s on generation)
+  and `output_format` must be MIME `image/png`; `gpt-5.3-chat` is treated as a reasoning model so
+  `temperature` is dropped (graceful). Full gate fresh: `tsc` (0), `lint` (0), `npm test` (**390
+  passing**, 44 files), `npm run build` (success). Committed/pushed to `origin/main`. **Real AI is now
+  active.**
