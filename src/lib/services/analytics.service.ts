@@ -73,7 +73,9 @@ export interface AnalyticsStore extends AnalyticsService {
   readonly userId: string;
 }
 
-const DEMO_ANALYTICS_USER_ID = "demo-analytics-user";
+import { DEMO_USER_ID } from "@/lib/seed/constants";
+
+const DEMO_ANALYTICS_USER_ID = DEMO_USER_ID;
 
 /* -------------------------------------------------------------------------- */
 /* Helpers                                                                    */

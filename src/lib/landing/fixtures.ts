@@ -1,4 +1,11 @@
-import { DEMO_CAMPAIGN_ID, DEMO_CAMPAIGN_NAME, DEMO_PAIN_POINTS } from "@/lib/creative/fixtures";
+import {
+  DEMO_CAMPAIGN_ID,
+  DEMO_CAMPAIGN_NAME,
+  DEMO_LANDING_IDS,
+  DEMO_LANDING_SLUG,
+  DEMO_PAIN_POINTS,
+  DEMO_USER_ID,
+} from "@/lib/seed/constants";
 
 import { buildLandingDocument, resetSectionSequence, type LandingContext } from "./templates";
 import type { ExperimentMeta, LandingDocument } from "./types";
@@ -17,7 +24,7 @@ import type { ExperimentMeta, LandingDocument } from "./types";
  */
 
 export { DEMO_CAMPAIGN_ID, DEMO_CAMPAIGN_NAME };
-export const DEMO_LANDING_USER_ID = "demo-landing-user";
+export const DEMO_LANDING_USER_ID = DEMO_USER_ID;
 
 /** The shared experiment key linking the two demo variants. */
 export const DEMO_EXPERIMENT_KEY = "exp-retirement-hero";
@@ -65,8 +72,8 @@ interface VariantSpec {
 
 const VARIANT_SPECS: VariantSpec[] = [
   {
-    id: "d1000000-0000-4000-8000-000000000001",
-    slug: "retirement-income-weekly",
+    id: DEMO_LANDING_IDS.VARIANT_A,
+    slug: DEMO_LANDING_SLUG,
     angle: "no-upsell trust",
     headline: "The plain-English retirement income plan - with zero upsells",
     subheadline:
@@ -78,7 +85,7 @@ const VARIANT_SPECS: VariantSpec[] = [
     leads: 61,
   },
   {
-    id: "d1000000-0000-4000-8000-000000000002",
+    id: DEMO_LANDING_IDS.VARIANT_B,
     slug: "retirement-income-inflation",
     angle: "beat inflation",
     headline: "Is inflation quietly shrinking your retirement? Here's the plan.",

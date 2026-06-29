@@ -1,4 +1,11 @@
 import type { AdPlatform } from "@/lib/research/standard-models";
+import {
+  DEMO_CAMPAIGN_ID,
+  DEMO_CAMPAIGN_NAME,
+  DEMO_CREATIVE_IDS,
+  DEMO_PAIN_POINTS,
+  DEMO_VOCAB,
+} from "@/lib/seed/constants";
 import type { AspectRatio } from "@/lib/validators/creative";
 
 import { assembleVariant, type RawByRole } from "./assemble";
@@ -13,23 +20,7 @@ import type { CreativeContent } from "./types";
  * are real, not faked) and grouped into A/B sets.
  */
 
-/**
- * Stable, VALID-UUID ids so the seeded studio resolves across cold starts AND
- * passes the shared `z.uuid()` validators (`creativeRequestSchema.campaignId`,
- * `imageRequestSchema.creativeId`). Human-readable suffixes encode the platform.
- */
-export const DEMO_CAMPAIGN_ID = "d0000000-0000-4000-8000-000000000000";
-export const DEMO_CAMPAIGN_NAME = "Retirement Income Weekly";
-
-/** Pain points the demo copy targets (mirrors the research engine's fixtures). */
-export const DEMO_PAIN_POINTS = [
-  "Inflation eroding savings before retirement",
-  "Distrust of upsell-heavy newsletters",
-  "Fear of not affording to retire on time",
-  "Overwhelmed by financial jargon",
-];
-
-const DEMO_VOCAB = ["nest egg", "plain-English", "no-upsell", "near-retirees", "inflation", "income"];
+export { DEMO_CAMPAIGN_ID, DEMO_CAMPAIGN_NAME, DEMO_PAIN_POINTS, DEMO_VOCAB };
 
 export interface DemoCreativeSeed {
   id: string;
@@ -50,7 +41,7 @@ interface SeedSpec {
 const SEED_SPECS: SeedSpec[] = [
   // --- Meta A/B set: three hooks for the same angle -------------------------
   {
-    id: "d0000000-0000-4000-8000-000000000011",
+    id: DEMO_CREATIVE_IDS.META_HERO,
     platform: "meta",
     angle: "No-upsell trust",
     batchId: "demo-meta-trust",
@@ -64,7 +55,7 @@ const SEED_SPECS: SeedSpec[] = [
     },
   },
   {
-    id: "d0000000-0000-4000-8000-000000000012",
+    id: DEMO_CREATIVE_IDS.META_VARIANT_B,
     platform: "meta",
     angle: "No-upsell trust",
     batchId: "demo-meta-trust",
@@ -78,7 +69,7 @@ const SEED_SPECS: SeedSpec[] = [
     },
   },
   {
-    id: "d0000000-0000-4000-8000-000000000013",
+    id: DEMO_CREATIVE_IDS.META_FRESH,
     platform: "meta",
     angle: "No-upsell trust",
     batchId: "demo-meta-trust",
@@ -93,7 +84,7 @@ const SEED_SPECS: SeedSpec[] = [
   },
   // --- Google RSA ----------------------------------------------------------
   {
-    id: "d0000000-0000-4000-8000-000000000021",
+    id: DEMO_CREATIVE_IDS.GOOGLE_RSA,
     platform: "google",
     angle: "Inflation protection",
     batchId: "demo-google-income",
@@ -117,7 +108,7 @@ const SEED_SPECS: SeedSpec[] = [
   },
   // --- TikTok --------------------------------------------------------------
   {
-    id: "d0000000-0000-4000-8000-000000000031",
+    id: DEMO_CREATIVE_IDS.TIKTOK_HOOK,
     platform: "tiktok",
     angle: "Inflation fear",
     batchId: "demo-tiktok-fear",
@@ -131,7 +122,7 @@ const SEED_SPECS: SeedSpec[] = [
   },
   // --- Taboola -------------------------------------------------------------
   {
-    id: "d0000000-0000-4000-8000-000000000041",
+    id: DEMO_CREATIVE_IDS.TABOOLA_A,
     platform: "taboola",
     angle: "Contrarian curiosity",
     batchId: "demo-taboola-curiosity",
@@ -143,7 +134,7 @@ const SEED_SPECS: SeedSpec[] = [
     },
   },
   {
-    id: "d0000000-0000-4000-8000-000000000042",
+    id: DEMO_CREATIVE_IDS.TABOOLA_B,
     platform: "taboola",
     angle: "Contrarian curiosity",
     batchId: "demo-taboola-curiosity",
@@ -194,4 +185,3 @@ export function buildSeededImages(seeds: DemoCreativeSeed[]): DemoImageSeed[] {
   return images;
 }
 
-export { DEMO_VOCAB };

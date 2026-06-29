@@ -63,11 +63,14 @@ function dbError(action: string, cause: unknown): AppError {
 /* Demo seed (credential-free + tests)                                        */
 /* -------------------------------------------------------------------------- */
 
-/** Matches the research engine's seeded project id so the hub links resolve. */
-const DEMO_RESEARCH_PROJECT_ID = "demo-retirement-income-weekly";
-/** Stable id so the headline demo campaign resolves across cold starts. */
-export const DEMO_CAMPAIGN_ID = "demo-campaign-retirement-income";
-const DEMO_USER_ID = "demo-user";
+import {
+  DEMO_CAMPAIGN_ID,
+  DEMO_CAMPAIGN_NAME,
+  DEMO_RESEARCH_PROJECT_ID,
+  DEMO_USER_ID,
+} from "@/lib/seed/constants";
+
+export { DEMO_CAMPAIGN_ID };
 
 function fixtureToSnapshot(segment: AudienceSegment, index: number): PersonaSnapshot {
   return personaSnapshotSchema.parse({
@@ -134,7 +137,7 @@ function buildDemoCampaign(): Campaign {
   return {
     id: DEMO_CAMPAIGN_ID,
     user_id: DEMO_USER_ID,
-    name: "Retirement Income Weekly",
+    name: DEMO_CAMPAIGN_NAME,
     status: "active",
     brief: toJson(brief),
     platform_config: toJson(platformConfig),

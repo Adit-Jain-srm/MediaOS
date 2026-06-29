@@ -1,5 +1,7 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { DEMO_CAMPAIGN_ID } from "@/lib/seed/constants";
+
 /**
  * Module-tool tests. CI-safe + offline: every upstream module service (research,
  * campaign, creative, landing, analytics) is mocked, so no network, no AI, and no
@@ -136,7 +138,7 @@ function buildCampaignRow(overrides: Partial<Campaign> = {}): Campaign {
 function buildMetricRow(overrides: Partial<PerformanceMetric> = {}): PerformanceMetric {
   return {
     id: `pm-${Math.random().toString(36).slice(2, 8)}`,
-    campaign_id: "demo-campaign-retirement-income",
+    campaign_id: DEMO_CAMPAIGN_ID,
     creative_id: "cr-1",
     user_id: "u",
     platform: "meta",

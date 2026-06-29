@@ -85,8 +85,10 @@ function statusOf(value: string): ResearchProjectStatus {
 /* In-memory store (credential-free demo + tests)                             */
 /* -------------------------------------------------------------------------- */
 
-/** Stable id so the headline demo project resolves even across cold starts. */
-const DEMO_PROJECT_ID = "demo-retirement-income-weekly";
+import {
+  DEMO_CAMPAIGN_ID,
+  DEMO_RESEARCH_PROJECT_ID,
+} from "@/lib/seed/constants";
 
 class InMemoryResearchStore implements ResearchStore {
   private readonly projects = new Map<string, ResearchProjectRecord>();
@@ -97,13 +99,13 @@ class InMemoryResearchStore implements ResearchStore {
     if (this.seeded) return;
     this.seeded = true;
     const now = new Date().toISOString();
-    const id = DEMO_PROJECT_ID;
+    const id = DEMO_RESEARCH_PROJECT_ID;
     this.projects.set(id, {
       id,
       name: "Retirement Income Weekly",
       params: DEFAULT_SEED_QUERY,
       status: "complete",
-      campaignId: null,
+      campaignId: DEMO_CAMPAIGN_ID,
       createdAt: now,
       updatedAt: now,
       hasReport: true,

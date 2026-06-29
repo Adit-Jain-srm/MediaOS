@@ -1,3 +1,4 @@
+import { DEMO_CAMPAIGN_ID } from "@/lib/seed/constants";
 import { toErrorMessage } from "@/lib/errors";
 import { logger } from "@/lib/logger";
 
@@ -24,16 +25,11 @@ export const MODULE_TOOL_CATEGORY = {
 export type ModuleToolCategory = (typeof MODULE_TOOL_CATEGORY)[keyof typeof MODULE_TOOL_CATEGORY];
 
 /**
- * Demo campaign identities the Operator falls back to when a goal is not scoped
- * to a specific campaign. The platform currently seeds the headline demo under
- * two ids (a documented carry-forward split): the campaign/analytics store keys
- * on {@link OPERATOR_DEMO_CAMPAIGN_ID} while the Creative Studio + Landing Engine
- * seed their content under {@link OPERATOR_DEMO_CONTENT_CAMPAIGN_ID}. Mirrored
- * inline here (like `tools.ts`'s `KNOWN_ROUTES`) to keep this module dependency
- * -light and testable; the model usually threads a real id through the chain.
+ * Demo campaign identity the Operator falls back to when a goal is not scoped
+ * to a specific campaign. Now unified under the canonical demo seed.
  */
-export const OPERATOR_DEMO_CAMPAIGN_ID = "demo-campaign-retirement-income";
-export const OPERATOR_DEMO_CONTENT_CAMPAIGN_ID = "d0000000-0000-4000-8000-000000000000";
+export const OPERATOR_DEMO_CAMPAIGN_ID = DEMO_CAMPAIGN_ID;
+export const OPERATOR_DEMO_CONTENT_CAMPAIGN_ID = DEMO_CAMPAIGN_ID;
 
 /**
  * Resolves the campaign a tool should operate on: an explicit argument wins,

@@ -48,13 +48,12 @@ export async function collectSeedTargets(): Promise<SeedCampaignTarget[]> {
       });
     }
     if (seedCreatives.length === 0) {
-      // Credential-free demo: the headline campaign's creatives live under a
-      // separate (Creative Studio) id, so adopt them here. Real Supabase
-      // campaigns own their creatives and never hit this branch.
+      // Fallback: when creatives aren't returned by the service (e.g. in-memory
+      // store doesn't index by campaign_id), use the fixture-based targets.
       if (campaign.id === ANALYTICS_DEMO_CAMPAIGN_ID) {
         targets.push({ ...buildDemoSeedTargets(), name: campaign.name });
       }
-      continue; // otherwise nothing to attribute metrics to
+      continue;
     }
     targets.push({ campaignId: campaign.id, name: campaign.name, creatives: seedCreatives });
   }
