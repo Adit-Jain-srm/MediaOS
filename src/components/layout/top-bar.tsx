@@ -36,7 +36,11 @@ function UserMenu() {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className={cn(buttonVariants({ variant: "ghost", size: "icon-sm" }))} aria-label="Account">
+      <DropdownMenuTrigger
+        render={
+          <button type="button" className={cn(buttonVariants({ variant: "ghost", size: "icon-sm" }))} aria-label="Account" />
+        }
+      >
         <Avatar className="size-6">
           <AvatarFallback className="bg-primary/15 text-[10px] font-medium text-primary">OP</AvatarFallback>
         </Avatar>
