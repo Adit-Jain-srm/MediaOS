@@ -5,13 +5,6 @@ import { Command as CommandPrimitive } from "cmdk"
 
 import { cn } from "@/lib/utils"
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import {
   InputGroup,
   InputGroupAddon,
 } from "@/components/ui/input-group"
@@ -34,35 +27,48 @@ function Command({
 }
 
 function CommandDialog({
-  title = "Command Palette",
-  description = "Search for a command to run...",
   children,
   className,
-  showCloseButton = false,
-  ...props
-}: Omit<React.ComponentProps<typeof Dialog>, "children"> & {
-  title?: string
-  description?: string
+  open,
+  onOpenChange,
+}: {
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
   className?: string
-  showCloseButton?: boolean
   children: React.ReactNode
 }) {
+  React.useEffect(() => {
+    if (!open) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault()
+        onOpenChange?.(false)
+      }
+    }
+    document.addEventListener("keydown", onKeyDown)
+    return () => document.removeEventListener("keydown", onKeyDown)
+  }, [open, onOpenChange])
+
+  if (!open) return null
+
   return (
-    <Dialog {...props}>
-      <DialogContent
+    <>
+      <div
+        className="fixed inset-0 z-50 bg-black/10 backdrop-blur-xs"
+        onClick={() => onOpenChange?.(false)}
+        aria-hidden="true"
+      />
+      <div
+        role="dialog"
+        aria-modal="true"
         className={cn(
-          "top-1/3 translate-y-0 overflow-hidden rounded-xl! p-0",
+          "fixed left-1/2 top-1/3 z-50 w-full max-w-lg -translate-x-1/2 overflow-hidden rounded-xl bg-popover p-0 shadow-2xl ring-1 ring-foreground/10",
           className
         )}
-        showCloseButton={showCloseButton}
       >
-        <DialogHeader className="sr-only">
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
-        </DialogHeader>
-        {children}
-      </DialogContent>
-    </Dialog>
+        <Command>{children}</Command>
+      </div>
+    </>
   )
 }
 

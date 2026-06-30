@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { MagnifyingGlass, Robot, SignOut } from "@phosphor-icons/react";
+import { MagnifyingGlass, Robot } from "@phosphor-icons/react";
 
 import { getActiveRoute } from "@/lib/nav";
 import { useUiStore } from "@/stores/ui-store";
@@ -9,14 +9,6 @@ import { cn } from "@/lib/utils";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 function UserMenu() {
   const router = useRouter();
@@ -28,32 +20,23 @@ function UserMenu() {
       }
     } catch {
       // ignore - we navigate to login regardless
-    } finally {
-      router.push("/login");
-      router.refresh();
     }
+    router.push("/login");
+    router.refresh();
   };
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        render={
-          <button type="button" className={cn(buttonVariants({ variant: "ghost", size: "icon-sm" }))} aria-label="Account" />
-        }
-      >
-        <Avatar className="size-6">
-          <AvatarFallback className="bg-primary/15 text-[10px] font-medium text-primary">OP</AvatarFallback>
-        </Avatar>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-48">
-        <DropdownMenuLabel>Operator workspace</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={onSignOut}>
-          <SignOut />
-          Sign out
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <button
+      type="button"
+      onClick={onSignOut}
+      className={cn(buttonVariants({ variant: "ghost", size: "icon-sm" }))}
+      aria-label="Sign out"
+      title="Sign out"
+    >
+      <Avatar className="size-6">
+        <AvatarFallback className="bg-primary/15 text-[10px] font-medium text-primary">OP</AvatarFallback>
+      </Avatar>
+    </button>
   );
 }
 
