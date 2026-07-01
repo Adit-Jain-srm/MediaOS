@@ -73,7 +73,7 @@ export function TrendsPanel({ trends }: { trends: TrendSignal[] }) {
               labelStyle={{ color: "var(--foreground)" }}
               itemStyle={{ color: "var(--muted-foreground)" }}
             />
-            <Bar dataKey="velocity" radius={[0, 4, 4, 0]} isAnimationActive={!reduceMotion} name="Velocity">
+            <Bar dataKey="velocity" radius={[0, 4, 4, 0]} isAnimationActive={!reduceMotion} animationDuration={800} animationEasing="ease-out" name="Velocity">
               {chartData.map((_, i) => (
                 <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
               ))}
@@ -108,6 +108,8 @@ export function TrendsPanel({ trends }: { trends: TrendSignal[] }) {
                       strokeWidth={2}
                       dot={false}
                       isAnimationActive={!reduceMotion}
+                      animationDuration={800}
+                      animationEasing="ease-out"
                     />
                   </LineChart>
                 </ResponsiveContainer>

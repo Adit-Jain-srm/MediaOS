@@ -176,6 +176,9 @@
   body {
     @apply bg-background text-foreground;
   }
+  h1, h2, h3 {
+    text-wrap: balance;
+  }
   /* Emerald selection to reinforce the locked accent. */
   ::selection {
     background-color: color-mix(in oklch, var(--primary) 28%, transparent);

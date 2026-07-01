@@ -4,6 +4,7 @@ import { Lightning, Warning } from "@phosphor-icons/react";
 
 import type { BuyingTrigger, PainPoint } from "@/lib/research/standard-models";
 import { EmptyState } from "@/components/ui/states";
+import { FadeIn, Stagger, StaggerItem } from "@/components/motion";
 import { cn } from "@/lib/utils";
 
 import { Citations } from "./citations";
@@ -14,7 +15,10 @@ function Meter({ label, value }: { label: string; value: number | undefined }) {
     <div className="flex items-center gap-2">
       <span className="w-16 shrink-0 text-[10px] tracking-wide text-muted-foreground uppercase">{label}</span>
       <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
-        <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
+        <div
+          className="h-full rounded-full bg-primary transition-all duration-700 ease-out motion-reduce:transition-none"
+          style={{ width: `${pct}%` }}
+        />
       </div>
       <span className="w-8 shrink-0 text-right font-mono text-[10px] text-muted-foreground">{pct}</span>
     </div>
@@ -33,15 +37,16 @@ export function PainPointsPanel({ painPoints }: { painPoints: PainPoint[] }) {
   }
 
   return (
-    <div className="space-y-3">
+    <Stagger className="space-y-3" stagger={0.04}>
       {painPoints.map((pain, i) => (
-        <article key={i} className="space-y-2.5 rounded-xl bg-card p-4 ring-1 ring-foreground/10">
-          <div className="flex items-start gap-2.5">
-            <div className="grid size-6 shrink-0 place-items-center rounded-md bg-destructive/10 font-mono text-xs text-destructive">
-              {i + 1}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-foreground">{pain.summary}</p>
+        <StaggerItem key={i}>
+          <article className="space-y-2.5 rounded-xl bg-card p-4 ring-1 ring-foreground/10">
+            <div className="flex items-start gap-2.5">
+              <div className="grid size-6 shrink-0 place-items-center rounded-md bg-destructive/10 font-mono text-xs text-destructive">
+                {i + 1}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-foreground">{pain.summary}</p>
               {pain.quote ? <p className="mt-1 text-xs text-pretty text-muted-foreground italic">“{pain.quote}”</p> : null}
             </div>
           </div>
@@ -52,9 +57,10 @@ export function PainPointsPanel({ painPoints }: { painPoints: PainPoint[] }) {
           <div className="pl-8">
             <Citations sources={pain.sources} max={3} />
           </div>
-        </article>
+          </article>
+        </StaggerItem>
       ))}
-    </div>
+    </Stagger>
   );
 }
 
@@ -67,11 +73,13 @@ const URGENCY_TONE: Record<string, string> = {
 export function BuyingTriggersPanel({ triggers }: { triggers: BuyingTrigger[] }) {
   if (triggers.length === 0) {
     return (
-      <EmptyState
-        icon={<Lightning weight="duotone" className="size-5" />}
-        title="No buying triggers yet"
-        description="Run the engine to detect the moments that push this audience to act."
-      />
+      <FadeIn>
+        <EmptyState
+          icon={<Lightning weight="duotone" className="size-5" />}
+          title="No buying triggers yet"
+          description="Run the engine to detect the moments that push this audience to act."
+        />
+      </FadeIn>
     );
   }
 

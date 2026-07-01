@@ -216,7 +216,7 @@ export function VariantCard({ creative, onUpdated, onRemoved, azureConfigured }:
                   <span className="font-mono">{value}</span>
                 </div>
                 <div className="h-1 overflow-hidden rounded-full bg-muted">
-                  <div className="h-full rounded-full bg-primary" style={{ width: `${value}%` }} />
+                  <div className="h-full rounded-full bg-primary transition-all duration-700 ease-out motion-reduce:transition-none" style={{ width: `${value}%` }} />
                 </div>
               </div>
             ))}

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, ChartLineUp, CurrencyDollar, Receipt, Target } from "@phosphor-icons/react/dist/ssr";
+import { ArrowRight, ChartLineUp } from "@phosphor-icons/react/dist/ssr";
 
 import {
   formatCompact,
@@ -8,8 +8,9 @@ import {
   type MetricSummary,
 } from "@/lib/analytics";
 import { Badge } from "@/components/ui/badge";
-import { EmptyState, Metric } from "@/components/ui/states";
+import { EmptyState } from "@/components/ui/states";
 import { cn } from "@/lib/utils";
+import { AnalyticsMetricsGrid } from "./analytics-metrics-grid";
 
 export interface CampaignAnalyticsRow {
   id: string;
@@ -46,12 +47,12 @@ export function AnalyticsOverview({ portfolio, campaigns }: AnalyticsOverviewPro
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Metric label="Spend (all campaigns)" value={formatCurrency(portfolio.spend)} icon={<CurrencyDollar weight="duotone" />} />
-        <Metric label="Conversions" value={formatCompact(portfolio.conversions)} icon={<Target weight="duotone" />} />
-        <Metric label="Blended CPA" value={formatCurrency(portfolio.cpa)} icon={<Receipt weight="duotone" />} />
-        <Metric label="Blended ROAS" value={formatMultiplier(portfolio.roas)} icon={<ChartLineUp weight="duotone" />} />
-      </div>
+      <AnalyticsMetricsGrid
+        spend={portfolio.spend}
+        conversions={portfolio.conversions}
+        cpa={portfolio.cpa}
+        roas={portfolio.roas}
+      />
 
       <div className="overflow-hidden rounded-xl ring-1 ring-foreground/10">
         <table className="w-full text-sm">

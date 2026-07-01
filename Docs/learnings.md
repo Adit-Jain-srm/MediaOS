@@ -288,3 +288,15 @@ Never repeat a class of mistake twice.
   in the palette component. This ensures all actions are available by the time the palette renders,
   regardless of which page the user navigates to first.
 
+---
+
+## 2026-07-01 - Subagent orchestration reliability
+
+### 2026-07-01 - Subagent workers failing to start
+
+**Problem:** Two Wave 4 workers (Landing + Analytics) produced zero files despite being launched. Assumed "prompt too large" might be the cause.
+
+**Root cause:** Prompt size is NOT the cause of subagent failures. The workers simply did not execute (possibly session/connection drops, resource limits, or transient platform issues). The same full-length prompts succeeded on retry.
+
+**Rule:** When a worker produces zero output, retry with the exact same full prompt. Do not truncate prompts as a mitigation - it wastes detail that the worker needs. If it fails again, investigate platform/session issues instead.
+

@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { EmptyState } from "@/components/ui/states";
+import { Stagger, StaggerItem } from "@/components/motion";
 import { cn } from "@/lib/utils";
 import { TEMPLATE_LIBRARY, TEMPLATE_ORDER, type LandingTemplate } from "@/lib/landing";
 import type { ExperimentGroup, LandingHubData, LandingPageView } from "@/lib/landing/studio";
@@ -152,7 +153,7 @@ export function LandingManager({ campaignId, campaignName, campaigns, azureConfi
   );
 
   const PageCard = ({ page }: { page: LandingPageView }) => (
-    <div className="flex flex-col gap-3 rounded-xl bg-card p-4 ring-1 ring-foreground/10">
+    <div className="card-hover flex flex-col gap-3 rounded-xl bg-card p-4 ring-1 ring-foreground/10">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
@@ -365,11 +366,13 @@ export function LandingManager({ campaignId, campaignName, campaigns, azureConfi
           {standalone.length > 0 ? (
             <div className="space-y-3">
               {experiments.length > 0 ? <h3 className="text-sm font-medium text-foreground">Pages</h3> : null}
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              <Stagger className="grid gap-3 md:grid-cols-2 xl:grid-cols-3" stagger={0.04}>
                 {standalone.map((page) => (
-                  <PageCard key={page.id} page={page} />
+                  <StaggerItem key={page.id}>
+                    <PageCard page={page} />
+                  </StaggerItem>
                 ))}
-              </div>
+              </Stagger>
             </div>
           ) : null}
         </div>

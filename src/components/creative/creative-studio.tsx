@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/ui/states";
+import { FadeIn, Stagger, StaggerItem } from "@/components/motion";
 import { CORE_PLATFORMS, platformDisplayName } from "@/lib/creative";
 import type { AdPlatform } from "@/lib/research/standard-models";
 import { imageFilename } from "@/lib/creative/export";
@@ -98,11 +99,13 @@ export function CreativeStudio({
   const onRemoved = (id: string) => setCreatives((prev) => prev.filter((c) => c.id !== id));
 
   const renderGrid = (items: CreativeView[]) => (
-    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+    <Stagger className="grid gap-3 md:grid-cols-2 xl:grid-cols-3" stagger={0.04}>
       {items.map((creative) => (
-        <VariantCard key={creative.id} creative={creative} onUpdated={onUpdated} onRemoved={onRemoved} azureConfigured={azureConfigured} />
+        <StaggerItem key={creative.id}>
+          <VariantCard creative={creative} onUpdated={onUpdated} onRemoved={onRemoved} azureConfigured={azureConfigured} />
+        </StaggerItem>
       ))}
-    </div>
+    </Stagger>
   );
 
   const batches = useMemo(() => {
@@ -177,13 +180,13 @@ export function CreativeStudio({
         />
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
-            <Stat label="Variants" value={stats.variants} icon={<Megaphone weight="duotone" />} />
-            <Stat label="Avg score" value={stats.avgScore} icon={<Target weight="duotone" />} />
-            <Stat label="Favorites" value={stats.favorites} icon={<Heart weight="duotone" />} />
-            <Stat label="Platforms" value={stats.platforms} icon={<Stack weight="duotone" />} />
-            <Stat label="Visuals" value={stats.images} icon={<ImagesSquare weight="duotone" />} />
-          </div>
+          <Stagger className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5" stagger={0.05}>
+            <StaggerItem><Stat label="Variants" value={stats.variants} icon={<Megaphone weight="duotone" />} /></StaggerItem>
+            <StaggerItem><Stat label="Avg score" value={stats.avgScore} icon={<Target weight="duotone" />} /></StaggerItem>
+            <StaggerItem><Stat label="Favorites" value={stats.favorites} icon={<Heart weight="duotone" />} /></StaggerItem>
+            <StaggerItem><Stat label="Platforms" value={stats.platforms} icon={<Stack weight="duotone" />} /></StaggerItem>
+            <StaggerItem><Stat label="Visuals" value={stats.images} icon={<ImagesSquare weight="duotone" />} /></StaggerItem>
+          </Stagger>
 
           <Tabs value={view} onValueChange={(v) => setView(String(v))}>
             <TabsList variant="line" className="flex-wrap">
@@ -248,23 +251,24 @@ export function CreativeStudio({
               ) : (
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                   {gallery.map((img, index) => (
-                    <a
-                      key={img.id}
-                      href={img.url}
-                      download={imageFilename(campaignName, img.aspectRatio ?? "1:1", index)}
-                      className="group/img relative overflow-hidden rounded-lg ring-1 ring-foreground/10"
-                      title="Download"
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={img.url} alt={img.promptUsed ?? img.headline} loading="lazy" className="aspect-square w-full object-cover" />
-                      <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-gradient-to-t from-black/70 to-transparent p-2 opacity-0 transition-opacity group-hover/img:opacity-100">
-                        <span className="flex items-center gap-1 text-[10px] text-white">
-                          <PlatformIcon platform={img.platform} className="size-3" />
-                          {img.aspectRatio}
-                        </span>
-                        <DownloadSimple weight="bold" className="size-3.5 text-white" />
-                      </div>
-                    </a>
+                    <FadeIn key={img.id} delay={index * 0.03}>
+                      <a
+                        href={img.url}
+                        download={imageFilename(campaignName, img.aspectRatio ?? "1:1", index)}
+                        className="group/img relative overflow-hidden rounded-lg ring-1 ring-foreground/10"
+                        title="Download"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={img.url} alt={img.promptUsed ?? img.headline} loading="lazy" className="aspect-square w-full object-cover" />
+                        <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-gradient-to-t from-black/70 to-transparent p-2 opacity-0 transition-opacity group-hover/img:opacity-100">
+                          <span className="flex items-center gap-1 text-[10px] text-white">
+                            <PlatformIcon platform={img.platform} className="size-3" />
+                            {img.aspectRatio}
+                          </span>
+                          <DownloadSimple weight="bold" className="size-3.5 text-white" />
+                        </div>
+                      </a>
+                    </FadeIn>
                   ))}
                 </div>
               )}

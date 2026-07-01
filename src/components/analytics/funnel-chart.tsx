@@ -36,7 +36,7 @@ export function FunnelChart({ stages }: FunnelChartProps) {
             </div>
             <div className="mt-1 h-7 w-full overflow-hidden rounded-md bg-muted/40">
               <div
-                className={cn("flex h-full items-center rounded-md transition-[width]", BAR_TINT[i] ?? BAR_TINT[BAR_TINT.length - 1])}
+                className={cn("flex h-full items-center rounded-md transition-[width] duration-700 ease-out motion-reduce:transition-none", BAR_TINT[i] ?? BAR_TINT[BAR_TINT.length - 1])}
                 style={{ width: `${width}%` }}
               >
                 <span className="px-2 font-mono text-[10px] tabular-nums text-primary-foreground/90">{formatPercent(stage.overallRate, 1)}</span>

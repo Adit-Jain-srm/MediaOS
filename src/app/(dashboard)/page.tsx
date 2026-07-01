@@ -18,18 +18,9 @@ import { FadeIn } from "@/components/motion";
 import { Card } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { StatsGrid } from "./stats-grid";
 
 export const metadata: Metadata = { title: "Command Center" };
-
-function formatNumber(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
-  return n.toFixed(0);
-}
-
-function formatCurrency(n: number): string {
-  return `$${formatNumber(n)}`;
-}
 
 export default async function CommandCenterPage() {
   const [campaign, metrics] = await Promise.all([
@@ -109,12 +100,12 @@ export default async function CommandCenterPage() {
             </div>
 
             {/* Stats row */}
-            <div className="grid grid-cols-2 gap-px bg-border/30 sm:grid-cols-4">
-              <StatCell label="Impressions" value={formatNumber(stats.impressions)} />
-              <StatCell label="Clicks" value={formatNumber(stats.clicks)} />
-              <StatCell label="Conversions" value={formatNumber(stats.conversions)} />
-              <StatCell label="Spend" value={formatCurrency(stats.spend)} />
-            </div>
+            <StatsGrid
+              impressions={stats.impressions}
+              clicks={stats.clicks}
+              conversions={stats.conversions}
+              spend={stats.spend}
+            />
 
             {/* Quick links */}
             <div className="flex flex-wrap items-center gap-2 border-t border-border/50 px-4 py-3">
@@ -130,20 +121,11 @@ export default async function CommandCenterPage() {
   );
 }
 
-function StatCell({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="bg-card px-4 py-3">
-      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className="mt-0.5 font-heading text-lg font-semibold tabular-nums text-foreground">{value}</p>
-    </div>
-  );
-}
-
 function QuickLink({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {
   return (
     <Link
       href={href}
-      className="inline-flex items-center gap-1.5 rounded-md border border-border/60 bg-muted/30 px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+      className="inline-flex items-center gap-1.5 rounded-md border border-border/60 bg-muted/30 px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-all hover:scale-[1.02] hover:bg-muted hover:text-foreground motion-reduce:hover:scale-100"
     >
       {icon}
       {label}

@@ -3,6 +3,7 @@ import { CheckCircle } from "@phosphor-icons/react/dist/ssr";
 import { formatDateLabel, platformLabel } from "@/lib/analytics";
 import type { AnomalySeverity } from "@/lib/analytics/types";
 import { cn } from "@/lib/utils";
+import { Stagger, StaggerItem } from "@/components/motion";
 
 import { SeverityBadge } from "./shared";
 
@@ -37,15 +38,15 @@ export function AnomaliesFeed({ anomalies }: AnomaliesFeedProps) {
     );
   }
   return (
-    <ul className="space-y-2">
+    <Stagger className="space-y-2" stagger={0.04}>
       {anomalies.map((anomaly) => (
-        <li
-          key={anomaly.id}
-          className={cn(
-            "space-y-1 rounded-lg bg-card p-3 ring-1 ring-foreground/10",
-            anomaly.resolvedAt ? "opacity-60" : null,
-          )}
-        >
+        <StaggerItem key={anomaly.id}>
+          <li
+            className={cn(
+              "space-y-1 rounded-lg bg-card p-3 ring-1 ring-foreground/10",
+              anomaly.resolvedAt ? "opacity-60" : null,
+            )}
+          >
           <div className="flex items-center justify-between gap-2">
             <span className="font-mono text-xs font-medium text-foreground">{metricTitle(anomaly.metric)}</span>
             <div className="flex items-center gap-2">
@@ -60,7 +61,8 @@ export function AnomaliesFeed({ anomalies }: AnomaliesFeedProps) {
             </span>
           ) : null}
         </li>
+        </StaggerItem>
       ))}
-    </ul>
+    </Stagger>
   );
 }

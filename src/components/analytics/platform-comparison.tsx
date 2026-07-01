@@ -49,9 +49,9 @@ export function PlatformComparison({ platforms }: PlatformComparisonProps) {
             content={<ChartTooltip format={(value) => `${value} / 100`} />}
           />
           <Legend wrapperStyle={{ fontSize: 11 }} iconType="circle" iconSize={8} />
-          <Bar dataKey="CTR" fill="var(--chart-2)" radius={[3, 3, 0, 0]} isAnimationActive={!reduced} animationDuration={400} />
-          <Bar dataKey="CVR" fill="var(--chart-3)" radius={[3, 3, 0, 0]} isAnimationActive={!reduced} animationDuration={400} />
-          <Bar dataKey="ROAS" fill="var(--chart-1)" radius={[3, 3, 0, 0]} isAnimationActive={!reduced} animationDuration={400} />
+          <Bar dataKey="CTR" fill="var(--chart-2)" radius={[3, 3, 0, 0]} isAnimationActive={!reduced} animationDuration={800} animationEasing="ease-out" />
+          <Bar dataKey="CVR" fill="var(--chart-3)" radius={[3, 3, 0, 0]} isAnimationActive={!reduced} animationDuration={800} animationEasing="ease-out" />
+          <Bar dataKey="ROAS" fill="var(--chart-1)" radius={[3, 3, 0, 0]} isAnimationActive={!reduced} animationDuration={800} animationEasing="ease-out" />
         </BarChart>
       </ChartFrame>
 

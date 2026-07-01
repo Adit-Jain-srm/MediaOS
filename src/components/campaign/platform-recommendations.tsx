@@ -6,6 +6,7 @@ import type { PlatformRecommendation } from "@/lib/campaign/brief";
 import { platformLabel } from "@/lib/campaign/brief";
 import { AD_PLATFORMS, type AdPlatform } from "@/lib/research/standard-models";
 import { Button } from "@/components/ui/button";
+import { FadeIn } from "@/components/motion";
 import { cn } from "@/lib/utils";
 
 import { FitBar, PlatformGlyph } from "./shared";
@@ -50,19 +51,19 @@ export function PlatformRecommendations({
       ) : null}
 
       <div className="grid gap-2.5">
-        {rows.map(({ platform, rec, fit }) => {
+        {rows.map(({ platform, rec, fit }, index) => {
           const isSelected = selectedSet.has(platform);
           return (
-            <button
-              type="button"
-              key={platform}
-              onClick={() => onToggle(platform)}
-              aria-pressed={isSelected}
-              className={cn(
-                "flex items-center gap-3 rounded-xl bg-card p-3 text-left ring-1 transition-colors hover:bg-card/70",
-                isSelected ? "ring-primary/50" : "ring-foreground/10",
-              )}
-            >
+            <FadeIn key={platform} delay={index * 0.03}>
+              <button
+                type="button"
+                onClick={() => onToggle(platform)}
+                aria-pressed={isSelected}
+                className={cn(
+                  "flex w-full items-center gap-3 rounded-xl bg-card p-3 text-left ring-1 transition-all hover:bg-card/70 hover:scale-[1.005] motion-reduce:hover:scale-100",
+                  isSelected ? "ring-primary/50" : "ring-foreground/10",
+                )}
+              >
               <span
                 className={cn(
                   "grid size-9 shrink-0 place-items-center rounded-lg",
@@ -90,6 +91,7 @@ export function PlatformRecommendations({
                 <Check weight="bold" className="size-3" />
               </span>
             </button>
+            </FadeIn>
           );
         })}
       </div>
