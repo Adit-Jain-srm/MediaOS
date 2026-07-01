@@ -164,6 +164,29 @@
   --sidebar-ring: oklch(0.696 0.17 162.5);
 }
 
+/* === Motion Design Tokens === */
+/* Centralized timing + easing so every transition in the app is consistent.
+   Duration hierarchy: instant (0) < fast (100ms) < standard (200ms) < slow (350ms).
+   Easing: enter (decelerate), exit (accelerate), spring (slight overshoot). */
+:root {
+  --motion-duration-instant: 0ms;
+  --motion-duration-fast: 100ms;
+  --motion-duration-standard: 200ms;
+  --motion-duration-slow: 350ms;
+  --motion-ease-enter: cubic-bezier(0, 0, 0.2, 1);
+  --motion-ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --motion-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --motion-ease-spring: cubic-bezier(0.22, 1.36, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-duration-fast: 0ms;
+    --motion-duration-standard: 0ms;
+    --motion-duration-slow: 0ms;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -296,5 +319,90 @@
     .btn-press:active {
       transform: none;
     }
+  }
+}
+
+/* Elevation depth system - oklch-tinted shadows (not pure black) */
+@layer utilities {
+  .shadow-depth-1 {
+    box-shadow:
+      0 1px 2px oklch(0.15 0.005 285 / 12%),
+      0 1px 3px oklch(0.15 0.005 285 / 8%);
+  }
+  .shadow-depth-2 {
+    box-shadow:
+      0 4px 12px oklch(0.15 0.005 285 / 15%),
+      0 2px 4px oklch(0.15 0.005 285 / 10%);
+  }
+  .shadow-depth-3 {
+    box-shadow:
+      0 12px 40px oklch(0.15 0.005 285 / 20%),
+      0 4px 12px oklch(0.15 0.005 285 / 12%);
+  }
+  .glow-primary {
+    box-shadow: 0 0 12px oklch(0.696 0.17 162.5 / 25%);
+  }
+  .glow-destructive {
+    box-shadow: 0 0 12px oklch(0.637 0.208 25.3 / 25%);
+  }
+}
+
+/* Success pulse keyframe - one-shot 400ms ring expansion */
+@keyframes ring-pulse {
+  0% { box-shadow: 0 0 0 0 oklch(0.696 0.17 162.5 / 40%); }
+  100% { box-shadow: 0 0 0 8px oklch(0.696 0.17 162.5 / 0%); }
+}
+.ring-pulse {
+  animation: ring-pulse 0.4s ease-out forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ring-pulse {
+    animation: none;
+  }
+}
+
+/* Scroll progress bar - CSS scroll-driven animation, zero JS */
+@layer utilities {
+  .scroll-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--primary);
+    transform-origin: left;
+    transform: scaleX(0);
+    z-index: 50;
+    animation: scroll-progress linear;
+    animation-timeline: scroll();
+  }
+  @keyframes scroll-progress {
+    to { transform: scaleX(1); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .scroll-progress {
+      animation: none;
+      display: none;
+    }
+  }
+}
+
+/* === View Transitions (browser-native route animation) === */
+::view-transition-old(root) {
+  animation: var(--motion-duration-standard) var(--motion-ease-exit) both fade-out;
+}
+::view-transition-new(root) {
+  animation: var(--motion-duration-standard) var(--motion-ease-enter) both fade-in;
+}
+@keyframes fade-out {
+  to { opacity: 0; }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
   }
 }
