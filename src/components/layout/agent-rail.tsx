@@ -28,7 +28,7 @@ export function AgentRail({ children }: AgentRailProps) {
   if (!open) return null;
 
   return (
-    <aside className="hidden h-dvh w-80 shrink-0 flex-col border-l border-border bg-sidebar lg:flex">
+    <aside className="hidden h-dvh w-80 shrink-0 flex-col border-l border-border bg-sidebar shadow-[inset_1px_0_0_0_oklch(1_0_0/4%)] lg:flex">
       <div className="flex h-14 items-center justify-between border-b border-border px-3">
         <div className="flex items-center gap-2">
           <div className="grid size-6 place-items-center rounded-md bg-primary/15 text-primary">

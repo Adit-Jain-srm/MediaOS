@@ -50,7 +50,7 @@ export default async function CommandCenterPage() {
       {/* Quick actions */}
       <FadeIn className="grid gap-3 sm:grid-cols-2">
         <Link href="/operator" className="group">
-          <Card className="h-full p-4 ring-1 ring-foreground/10 transition-colors hover:bg-card/70">
+          <Card className="h-full p-4 ring-1 ring-foreground/10 transition-all duration-200 hover:bg-card/70 hover:ring-foreground/20 hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98] motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100">
             <div className="flex items-start gap-3">
               <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/15 text-primary">
                 <Robot className="size-5" weight="fill" />
@@ -69,7 +69,7 @@ export default async function CommandCenterPage() {
         </Link>
 
         <Link href="/research" className="group">
-          <Card className="h-full p-4 ring-1 ring-foreground/10 transition-colors hover:bg-card/70">
+          <Card className="h-full p-4 ring-1 ring-foreground/10 transition-all duration-200 hover:bg-card/70 hover:ring-foreground/20 hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98] motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100">
             <div className="flex items-start gap-3">
               <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground">
                 <Binoculars className="size-5" weight="duotone" />
@@ -91,7 +91,7 @@ export default async function CommandCenterPage() {
       {/* Demo campaign card */}
       {hasCampaign ? (
         <FadeIn>
-          <Card className="overflow-hidden ring-1 ring-foreground/10">
+          <Card className="overflow-hidden ring-1 ring-foreground/10 card-hover">
             <div className="flex items-center justify-between border-b border-border/50 px-4 py-3">
               <div className="flex items-center gap-2">
                 <Lightning className="size-4 text-primary" weight="fill" />

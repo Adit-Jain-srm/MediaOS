@@ -1,6 +1,7 @@
 "use client";
 
 import { CheckCircle, CircleNotch, Wrench, XCircle } from "@phosphor-icons/react";
+import { motion, useReducedMotion } from "motion/react";
 
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -14,8 +15,15 @@ import { ArtifactView } from "./artifact-view";
  */
 export function ToolCallCard({ tool }: { tool: UiToolEvent }) {
   const { result } = tool;
+  const reduced = useReducedMotion();
+
   return (
-    <div className="rounded-lg border border-border bg-card/40 p-2.5">
+    <motion.div
+      className="rounded-lg border border-border bg-card/40 p-2.5"
+      initial={reduced ? false : { opacity: 0, height: 0, overflow: "hidden" }}
+      animate={{ opacity: 1, height: "auto", overflow: "visible" }}
+      transition={{ type: "spring", stiffness: 300, damping: 30 }}
+    >
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-1.5">
           <Wrench weight="fill" className="size-3.5 shrink-0 text-primary" />
@@ -53,7 +61,7 @@ export function ToolCallCard({ tool }: { tool: UiToolEvent }) {
           )}
         </div>
       ) : null}
-    </div>
+    </motion.div>
   );
 }
 

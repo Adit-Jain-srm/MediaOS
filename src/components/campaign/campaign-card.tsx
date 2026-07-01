@@ -18,7 +18,7 @@ export function CampaignCard({ campaign }: { campaign: CampaignView }) {
     <div className="group relative">
       <Link
         href={`/campaigns/${campaign.id}`}
-        className="block h-full rounded-xl bg-card p-4 ring-1 ring-foreground/10 transition-colors hover:bg-card/70"
+        className="card-hover block h-full rounded-xl bg-card p-4 ring-1 ring-foreground/10 transition-colors hover:bg-card/70 hover:ring-foreground/20"
       >
         <div className="flex items-start justify-between gap-2">
           <div className="flex min-w-0 items-start gap-2.5">

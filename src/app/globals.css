@@ -196,3 +196,101 @@
     scrollbar-width: none;
   }
 }
+
+/* === Motion & Delight === */
+
+/* Shimmer effect for skeleton loaders (GPU-composited, translate only). */
+@keyframes shimmer {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
+}
+
+.shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    oklch(1 0 0 / 6%) 40%,
+    oklch(1 0 0 / 10%) 50%,
+    oklch(1 0 0 / 6%) 60%,
+    transparent 100%
+  );
+  animation: shimmer 1.8s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .shimmer::after {
+    animation: none;
+  }
+}
+
+/* Pulse border animation for "running" status chips. */
+@keyframes pulse-border {
+  0%, 100% { border-color: oklch(0.696 0.17 162.5 / 40%); }
+  50% { border-color: oklch(0.696 0.17 162.5 / 80%); }
+}
+.animate-pulse-border {
+  animation: pulse-border 2s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-pulse-border {
+    animation: none;
+  }
+}
+
+/* Focus ring animation - scales in on focus-visible. */
+@layer base {
+  *:focus-visible {
+    outline: none;
+    box-shadow:
+      0 0 0 2px var(--background),
+      0 0 0 4px var(--ring);
+    border-radius: inherit;
+    transition: box-shadow 0.15s ease-out;
+  }
+}
+
+/* Card interaction utility classes */
+@layer utilities {
+  .card-hover {
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+                border-color 0.2s ease;
+  }
+  .card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px oklch(0 0 0 / 20%), 0 2px 4px oklch(0 0 0 / 10%);
+  }
+  .card-hover:active {
+    transform: translateY(0) scale(0.98);
+    transition-duration: 0.05s;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .card-hover:hover {
+      transform: none;
+    }
+    .card-hover:active {
+      transform: none;
+    }
+  }
+}
+
+/* Button press utility */
+@layer utilities {
+  .btn-press {
+    transition: transform 0.1s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .btn-press:active {
+    transform: scale(0.96) translateY(1px);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .btn-press:active {
+      transform: none;
+    }
+  }
+}

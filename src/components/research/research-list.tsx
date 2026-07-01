@@ -8,6 +8,7 @@ import { toast } from "sonner";
 
 import { deleteResearchProjectAction } from "@/app/(dashboard)/research/actions";
 import { Badge } from "@/components/ui/badge";
+import { Stagger, StaggerItem } from "@/components/motion";
 import { cn } from "@/lib/utils";
 
 import { NewResearchForm } from "./new-research-form";
@@ -49,7 +50,7 @@ function ProjectCard({ project }: { project: ResearchProjectSummary }) {
       <Link
         href={`/research/${project.id}`}
         className={cn(
-          "block h-full rounded-xl bg-card p-4 ring-1 ring-foreground/10 transition-colors hover:bg-card/70",
+          "card-hover block h-full rounded-xl bg-card p-4 ring-1 ring-foreground/10 transition-colors hover:bg-card/70 hover:ring-foreground/20",
           pending && "pointer-events-none opacity-50",
         )}
       >
@@ -88,11 +89,13 @@ export function ResearchList({ projects }: { projects: ResearchProjectSummary[] 
     <div className="space-y-6">
       <NewResearchForm />
       {projects.length > 0 ? (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <Stagger className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {projects.map((project) => (
-            <ProjectCard key={project.id} project={project} />
+            <StaggerItem key={project.id}>
+              <ProjectCard project={project} />
+            </StaggerItem>
           ))}
-        </div>
+        </Stagger>
       ) : (
         <p className="rounded-xl border border-dashed border-border bg-card/30 px-6 py-10 text-center text-sm text-muted-foreground">
           No research projects yet. Create one above to start streaming live audience intelligence.

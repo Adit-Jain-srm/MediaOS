@@ -38,7 +38,7 @@ export function Metric({ label, value, delta, deltaLabel, invertDelta = false, i
   const deltaText = deltaLabel ?? (hasDelta ? `${delta > 0 ? "+" : ""}${delta.toFixed(1)}%` : null);
 
   return (
-    <div className={cn("flex flex-col gap-1.5 rounded-xl bg-card p-4 ring-1 ring-foreground/10", className)}>
+    <div className={cn("card-hover flex flex-col gap-1.5 rounded-xl bg-card p-4 ring-1 ring-foreground/10", className)}>
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{label}</span>
         {icon ? <span className="text-muted-foreground [&_svg]:size-4">{icon}</span> : null}

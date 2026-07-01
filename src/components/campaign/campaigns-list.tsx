@@ -8,6 +8,7 @@ import type { CampaignStatus, CampaignView } from "@/lib/campaign/brief";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/ui/states";
+import { Stagger, StaggerItem } from "@/components/motion";
 
 import { CampaignCard } from "./campaign-card";
 import { TemplateGallery } from "./template-gallery";
@@ -66,11 +67,13 @@ export function CampaignsList({ campaigns }: { campaigns: CampaignView[] }) {
       </div>
 
       {visible.length > 0 ? (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <Stagger className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {visible.map((campaign) => (
-            <CampaignCard key={campaign.id} campaign={campaign} />
+            <StaggerItem key={campaign.id}>
+              <CampaignCard campaign={campaign} />
+            </StaggerItem>
           ))}
-        </div>
+        </Stagger>
       ) : (
         <p className="rounded-xl border border-dashed border-border bg-card/30 px-6 py-10 text-center text-sm text-muted-foreground">
           No {filter} campaigns.

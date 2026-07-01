@@ -11,6 +11,7 @@ import {
 
 import type { AudienceSegment } from "@/lib/research/standard-models";
 import { Badge } from "@/components/ui/badge";
+import { TiltCard } from "@/components/motion";
 import { cn } from "@/lib/utils";
 
 import { Citations } from "./citations";
@@ -54,7 +55,8 @@ export function PersonaCard({ persona, className }: PersonaCardProps) {
   const confidence = persona.sizeEstimate.confidence;
 
   return (
-    <article className={cn("flex flex-col gap-4 rounded-xl bg-card p-4 ring-1 ring-foreground/10", className)}>
+    <TiltCard className={className} maxTilt={1.5}>
+      <article className="flex flex-col gap-4 rounded-xl bg-card p-4 ring-1 ring-foreground/10 card-hover">
       <header className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-2.5">
           <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/15 text-primary">
@@ -130,5 +132,6 @@ export function PersonaCard({ persona, className }: PersonaCardProps) {
         <Citations sources={persona.sources} />
       </footer>
     </article>
+    </TiltCard>
   );
 }

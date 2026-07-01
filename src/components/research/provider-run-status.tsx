@@ -39,7 +39,7 @@ export function ProviderRunStatus({ results, running, className }: ProviderRunSt
               "flex items-center gap-2 rounded-lg border bg-card px-2.5 py-2 ring-1 ring-foreground/5 transition-colors",
               state === "success" && "border-primary/30",
               state === "failed" && "border-destructive/30",
-              state === "running" && "border-info/30",
+              state === "running" && "border-info/30 animate-pulse-border",
               state === "pending" && "border-border opacity-70",
             )}
           >

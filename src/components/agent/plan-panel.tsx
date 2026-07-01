@@ -1,6 +1,7 @@
 "use client";
 
 import { CheckCircle, Circle, CircleNotch, ListChecks, MinusCircle, XCircle } from "@phosphor-icons/react";
+import { motion, useReducedMotion } from "motion/react";
 
 import type { AgentPlan, PlanStepStatus } from "@/lib/agent/types";
 import { cn } from "@/lib/utils";
@@ -66,6 +67,8 @@ export function PlanPanel({ plan, className }: { plan: AgentPlan; className?: st
 
 function StepIcon({ status }: { status: PlanStepStatus }) {
   const base = "mt-0.5 size-4 shrink-0";
+  const reduced = useReducedMotion();
+
   switch (status) {
     case "running":
       return (
@@ -74,7 +77,16 @@ function StepIcon({ status }: { status: PlanStepStatus }) {
         </span>
       );
     case "completed":
-      return <CheckCircle weight="fill" className={cn(base, "text-primary")} />;
+      return (
+        <motion.span
+          initial={reduced ? false : { scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ type: "spring", stiffness: 400, damping: 15 }}
+          className="mt-0.5 inline-flex"
+        >
+          <CheckCircle weight="fill" className={cn(base, "text-primary")} />
+        </motion.span>
+      );
     case "failed":
       return <XCircle weight="fill" className={cn(base, "text-destructive")} />;
     case "skipped":

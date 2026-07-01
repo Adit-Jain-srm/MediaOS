@@ -148,7 +148,7 @@ export function VariantCard({ creative, onUpdated, onRemoved, azureConfigured }:
   return (
     <article
       className={cn(
-        "flex flex-col gap-3 rounded-xl bg-card p-4 ring-1 ring-foreground/10 transition-shadow",
+        "card-hover flex flex-col gap-3 rounded-xl bg-card p-4 ring-1 ring-foreground/10 transition-shadow",
         creative.isFavorite && "ring-primary/40",
       )}
     >
