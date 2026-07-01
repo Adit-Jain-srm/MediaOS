@@ -5,7 +5,7 @@ export default function OperatorLoading() {
     <div className="mx-auto max-w-7xl space-y-5 p-4 md:p-6">
       <div className="space-y-2">
         <ShimmerSkeleton className="h-6 w-32" />
-        <ShimmerSkeleton className="h-4 w-2/3 max-w-lg" />
+        <p className="text-sm text-muted-foreground animate-pulse">Waking up the Operator…</p>
       </div>
       <ShimmerSkeleton className="h-80 w-full rounded-xl" />
       <div className="flex gap-2">

@@ -6,7 +6,7 @@ export default function AnalyticsLoading() {
     <div className="mx-auto max-w-7xl space-y-5 p-4 md:p-6">
       <div className="space-y-2">
         <ShimmerSkeleton className="h-6 w-36" />
-        <ShimmerSkeleton className="h-4 w-2/3 max-w-lg" />
+        <p className="text-sm text-muted-foreground animate-pulse">Crunching campaign numbers…</p>
       </div>
       <SkeletonMetrics count={6} className="lg:grid-cols-3 xl:grid-cols-6" />
       <ShimmerSkeleton className="h-64 w-full rounded-xl" />

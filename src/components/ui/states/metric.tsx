@@ -5,6 +5,8 @@ import { cn } from "@/lib/utils";
 
 export interface MetricProps {
   label: string;
+  /** HTML title attribute for the label (expands abbreviations for accessibility). */
+  labelTitle?: string;
   /** Pre-formatted value (e.g. "$12.4k", "3.2%", "1,204"). Rendered in mono. */
   value: ReactNode;
   /** Signed change. Sign drives the delta color and arrow. */
@@ -26,7 +28,7 @@ export interface MetricProps {
  * Single metric tile. Numerics use mono + tabular figures so columns of metrics
  * align. Delta coloring uses the semantic success/danger tokens.
  */
-export function Metric({ label, value, delta, deltaLabel, invertDelta = false, icon, hint, className }: MetricProps) {
+export function Metric({ label, labelTitle, value, delta, deltaLabel, invertDelta = false, icon, hint, className }: MetricProps) {
   const hasDelta = typeof delta === "number" && Number.isFinite(delta);
   const direction = !hasDelta ? "flat" : delta > 0 ? "up" : delta < 0 ? "down" : "flat";
   const isGood = invertDelta ? direction === "down" : direction === "up";
@@ -40,7 +42,7 @@ export function Metric({ label, value, delta, deltaLabel, invertDelta = false, i
   return (
     <div className={cn("card-hover flex flex-col gap-1.5 rounded-xl bg-card p-4 ring-1 ring-foreground/10", className)}>
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{label}</span>
+        <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase" title={labelTitle}>{label}</span>
         {icon ? <span className="text-muted-foreground [&_svg]:size-4">{icon}</span> : null}
       </div>
       <div className="font-mono text-2xl font-semibold tracking-tight tabular-nums text-foreground">{value}</div>

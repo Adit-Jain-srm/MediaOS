@@ -66,7 +66,7 @@ export function Sidebar() {
               {active && !collapsed ? (
                 <AnimatedIndicator layoutId="sidebar-active-indicator" />
               ) : null}
-              <Icon weight={active ? "fill" : "regular"} className={cn("size-[18px] shrink-0", active && "text-primary")} />
+              <Icon weight={active ? "fill" : "regular"} className={cn("size-[18px] shrink-0 transition-transform duration-[var(--motion-duration-fast)] group-hover:-translate-y-px group-hover:scale-110 motion-reduce:group-hover:transform-none", active && "text-primary")} />
               {!collapsed ? <span className="truncate">{route.label}</span> : null}
               {collapsed && active ? (
                 <motion.div
