@@ -40,7 +40,7 @@ export default async function CommandCenterPage() {
 
       {/* Quick actions */}
       <FadeIn className="grid gap-3 sm:grid-cols-2">
-        <Link href="/operator" className="group">
+        <Link href="/operator" className="group cursor-pointer">
           <Card className="h-full p-4 ring-1 ring-foreground/10 transition-all duration-200 hover:bg-card/70 hover:ring-foreground/20 hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98] motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100">
             <div className="flex items-start gap-3">
               <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/15 text-primary">
@@ -59,7 +59,7 @@ export default async function CommandCenterPage() {
           </Card>
         </Link>
 
-        <Link href="/research" className="group">
+        <Link href="/research" className="group cursor-pointer">
           <Card className="h-full p-4 ring-1 ring-foreground/10 transition-all duration-200 hover:bg-card/70 hover:ring-foreground/20 hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98] motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100">
             <div className="flex items-start gap-3">
               <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground">
@@ -125,7 +125,7 @@ function QuickLink({ href, icon, label }: { href: string; icon: React.ReactNode;
   return (
     <Link
       href={href}
-      className="inline-flex items-center gap-1.5 rounded-md border border-border/60 bg-muted/30 px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-all hover:scale-[1.02] hover:bg-muted hover:text-foreground motion-reduce:hover:scale-100"
+      className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-border/60 bg-muted/30 px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-all hover:scale-[1.02] hover:bg-muted hover:text-foreground motion-reduce:hover:scale-100"
     >
       {icon}
       {label}

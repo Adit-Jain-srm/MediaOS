@@ -193,7 +193,7 @@ export function VariantCard({ creative, onUpdated, onRemoved, azureConfigured }:
 
       <div className="flex flex-wrap items-center gap-2">
         <HookBadge hook={content.hook} />
-        <button type="button" onClick={() => setShowBreakdown((s) => !s)} className="rounded transition-opacity hover:opacity-80">
+        <button type="button" onClick={() => setShowBreakdown((s) => !s)} className="cursor-pointer rounded transition-opacity hover:opacity-80">
           <ScoreMeter total={content.score.total} />
         </button>
         <FlagBadges flags={content.flags} />

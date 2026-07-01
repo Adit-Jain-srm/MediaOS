@@ -55,7 +55,7 @@ export function OperatorWorkspace({ campaignId, campaignName }: { campaignId?: s
                   type="button"
                   onClick={() => void controller.loadConversation(conversation.id)}
                   className={cn(
-                    "flex w-full items-start gap-2 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-muted",
+                    "flex w-full cursor-pointer items-start gap-2 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-muted",
                     controller.conversationId === conversation.id && "bg-muted",
                   )}
                 >

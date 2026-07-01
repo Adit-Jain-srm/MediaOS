@@ -300,3 +300,11 @@ Never repeat a class of mistake twice.
 
 **Rule:** When a worker produces zero output, retry with the exact same full prompt. Do not truncate prompts as a mitigation - it wastes detail that the worker needs. If it fails again, investigate platform/session issues instead.
 
+### 2026-07-01 - Do not call subagents within subagents
+
+**Problem:** Subagent workers attempted to spawn their own child subagents (e.g., for parallel internal work or to delegate sub-tasks). This causes `[invalid_argument]` errors and silent failures.
+
+**Root cause:** The platform does not support nested subagent invocations. A subagent is a leaf executor - it can use tools (shell, file read/write, grep, etc.) but cannot spawn further subagents. Only the parent orchestrator can launch subagents.
+
+**Rule:** Never instruct a subagent to "launch a worker" or "delegate to a subagent" in its prompt. All parallelization decisions happen at the parent level. Subagents execute sequentially with their available tools. If a task needs decomposition, the parent splits it into multiple sibling subagents, not nested ones.
+

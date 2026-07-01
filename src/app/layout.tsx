@@ -13,6 +13,9 @@ export const metadata: Metadata = {
   description:
     "MediaOS is an AI media buyer you can hire in a browser tab. The Operator agent plans, executes, monitors, and improves campaigns end to end, powered by a live audience research intelligence engine.",
   applicationName: "MediaOS",
+  openGraph: {
+    images: ["/og.svg"],
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

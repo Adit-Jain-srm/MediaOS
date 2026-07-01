@@ -46,7 +46,7 @@ export function Sidebar() {
               title={collapsed ? route.label : undefined}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "group relative flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm",
+                "group relative flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm cursor-pointer",
                 "transition-all duration-100",
                 active
                   ? "bg-sidebar-accent text-foreground"
