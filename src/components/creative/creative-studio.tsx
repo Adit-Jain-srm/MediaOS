@@ -3,10 +3,12 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  ArrowsClockwise,
   DownloadSimple,
   Heart,
   ImagesSquare,
   Megaphone,
+  Sparkle,
   SquaresFour,
   Stack,
   Target,
@@ -188,6 +190,8 @@ export function CreativeStudio({
             <StaggerItem><Stat label="Visuals" value={stats.images} icon={<ImagesSquare weight="duotone" />} /></StaggerItem>
           </Stagger>
 
+          <WeakVariantsNudge creatives={creatives} />
+
           <Tabs value={view} onValueChange={(v) => setView(String(v))}>
             <TabsList variant="line" className="flex-wrap">
               <TabsTrigger value="all">
@@ -276,6 +280,30 @@ export function CreativeStudio({
           </Tabs>
         </>
       )}
+    </div>
+  );
+}
+
+function WeakVariantsNudge({ creatives }: { creatives: CreativeView[] }) {
+  const weakCount = creatives.filter((c) => c.content.score.total < 50).length;
+  if (weakCount === 0) return null;
+
+  return (
+    <div className="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2">
+      <Sparkle weight="fill" className="size-4 shrink-0 text-primary" />
+      <span className="text-sm text-foreground/80">
+        {weakCount} variant{weakCount > 1 ? "s" : ""} scoring below 50.
+      </span>
+      <button
+        type="button"
+        className="ml-auto inline-flex items-center gap-1 rounded-md bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
+        onClick={() => {
+          const el = document.querySelector("[data-slot=generation-panel]");
+          el?.scrollIntoView({ behavior: "smooth", block: "center" });
+        }}
+      >
+        <ArrowsClockwise className="size-3" /> Regenerate weak variants?
+      </button>
     </div>
   );
 }

@@ -57,6 +57,10 @@ export function CreativeCorrelation({ creatives }: CreativeCorrelationProps) {
   const reduced = useReducedMotion();
   if (creatives.length === 0) return null;
 
+  const avgCtr = creatives.length > 0
+    ? creatives.reduce((sum, c) => sum + c.ctr, 0) / creatives.length
+    : 0;
+
   const byPlatform = new Map<string, ScatterPoint[]>();
   for (const c of creatives) {
     const point: ScatterPoint = { x: c.spend, y: c.cpa, z: Math.max(c.conversions, 1), label: c.label, platform: c.platform, ctr: c.ctr, roas: c.roas };
@@ -125,6 +129,11 @@ export function CreativeCorrelation({ creatives }: CreativeCorrelationProps) {
                   <span className="flex items-center gap-1.5">
                     <PlatformDot platform={c.platform} />
                     <span className="truncate">{c.label}</span>
+                    {c.ctr < avgCtr * 0.6 && c.spend > 0 ? (
+                      <span className="shrink-0 rounded bg-warning/15 px-1.5 py-0.5 text-[9px] font-semibold tracking-wide text-warning uppercase" title="CTR significantly below average - possible creative fatigue">
+                        Fatigue risk
+                      </span>
+                    ) : null}
                   </span>
                 </td>
                 <td className="px-3 py-2 text-right font-mono tabular-nums">{formatCurrency(c.spend)}</td>

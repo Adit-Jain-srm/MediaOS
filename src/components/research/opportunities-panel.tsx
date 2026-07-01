@@ -28,7 +28,7 @@ export function OpportunitiesPanel({ opportunities }: { opportunities: Opportuni
       <EmptyState
         icon={<Lightbulb weight="duotone" className="size-5" />}
         title="No opportunities yet"
-        description="Run the engine to detect high-leverage openings the competition is missing."
+        description="Run the engine to detect high-value openings the competition is missing."
       />
     );
   }

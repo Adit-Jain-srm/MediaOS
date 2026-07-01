@@ -138,7 +138,7 @@ export function GenerationPanel({ campaignId, azureConfigured, defaultPainPoints
   };
 
   return (
-    <section className="space-y-4 rounded-xl bg-card p-4 ring-1 ring-foreground/10">
+    <section data-slot="generation-panel" className="space-y-4 rounded-xl bg-card p-4 ring-1 ring-foreground/10">
       <div className="flex items-center justify-between gap-2">
         <h3 className="flex items-center gap-1.5 font-heading text-sm font-medium text-foreground">
           <Sparkle weight="duotone" className="size-4 text-primary" /> Generate creatives

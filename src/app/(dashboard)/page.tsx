@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 import {
   ArrowRight,
   Binoculars,
@@ -19,6 +20,7 @@ import { Card } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { StatsGrid } from "./stats-grid";
+import { MorningBrief } from "./morning-brief";
 
 export const metadata: Metadata = { title: "Command Center" };
 
@@ -79,6 +81,13 @@ export default async function CommandCenterPage() {
         </Link>
       </FadeIn>
 
+      {/* Morning Brief - proactive intelligence without opening the Operator */}
+      <FadeIn>
+        <Suspense fallback={null}>
+          <MorningBrief />
+        </Suspense>
+      </FadeIn>
+
       {/* Demo campaign card */}
       {hasCampaign ? (
         <FadeIn>
@@ -90,6 +99,7 @@ export default async function CommandCenterPage() {
                 <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-emerald-500">
                   Active
                 </span>
+                <span className="text-[10px] text-muted-foreground">(sample data)</span>
               </div>
               <Link
                 href={`/campaigns/${DEMO_CAMPAIGN_ID}`}

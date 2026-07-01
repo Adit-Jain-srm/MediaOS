@@ -47,7 +47,7 @@ export function ComparisonView({ personas }: { personas: AudienceSegment[] }) {
       <EmptyState
         icon={<ArrowsLeftRight weight="duotone" className="size-5" />}
         title="Need at least two personas to compare"
-        description="Run the engine (or add another segment) to unlock side-by-side comparison."
+        description="Run the engine (or add another segment) to see side-by-side comparison."
       />
     );
   }
