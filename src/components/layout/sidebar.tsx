@@ -7,6 +7,7 @@ import { motion, useReducedMotion } from "motion/react";
 
 import { getActiveRoute, NAV_ROUTES } from "@/lib/nav";
 import { useUiStore } from "@/stores/ui-store";
+import { useSound } from "@/hooks/use-sound";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { AnimatedIndicator } from "@/components/motion";
@@ -19,6 +20,12 @@ export function Sidebar() {
   const toggleSidebar = useUiStore((state) => state.toggleSidebar);
   const activeRoute = getActiveRoute(pathname);
   const reduced = useReducedMotion();
+  const { play } = useSound();
+
+  const handleToggleSidebar = () => {
+    play("toggle");
+    toggleSidebar();
+  };
 
   return (
     <aside
@@ -75,7 +82,7 @@ export function Sidebar() {
 
       <div className={cn("flex items-center gap-1 border-t border-sidebar-border p-2", collapsed ? "flex-col" : "justify-between")}>
         <ThemeToggle />
-        <Button variant="ghost" size="icon-sm" onClick={toggleSidebar} aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"} className="btn-press">
+        <Button variant="ghost" size="icon-sm" onClick={handleToggleSidebar} aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"} className="btn-press">
           {collapsed ? <CaretRight /> : <CaretLeft />}
         </Button>
       </div>

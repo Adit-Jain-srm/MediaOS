@@ -1,7 +1,8 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { MagnifyingGlass, Robot } from "@phosphor-icons/react";
+import { MagnifyingGlass, Robot, SpeakerHigh, SpeakerSlash } from "@phosphor-icons/react";
+import { useSound } from "@/hooks/use-sound";
 
 import { getActiveRoute } from "@/lib/nav";
 import { useUiStore } from "@/stores/ui-store";
@@ -45,6 +46,7 @@ export function TopBar() {
   const route = getActiveRoute(pathname);
   const setCommandOpen = useUiStore((state) => state.setCommandOpen);
   const toggleAgentRail = useUiStore((state) => state.toggleAgentRail);
+  const { enabled: soundEnabled, toggle: toggleSoundEnabled } = useSound();
 
   return (
     <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-border bg-background/80 px-4 backdrop-blur">
@@ -65,6 +67,16 @@ export function TopBar() {
         </button>
         <Button variant="ghost" size="icon-sm" className="sm:hidden" aria-label="Search" onClick={() => setCommandOpen(true)}>
           <MagnifyingGlass />
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label={soundEnabled ? "Mute sounds" : "Enable sounds"}
+          onClick={toggleSoundEnabled}
+          title={soundEnabled ? "Mute sounds" : "Enable sounds"}
+        >
+          {soundEnabled ? <SpeakerHigh /> : <SpeakerSlash />}
         </Button>
 
         <UserMenu />
