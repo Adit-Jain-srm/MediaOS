@@ -308,3 +308,29 @@ Never repeat a class of mistake twice.
 
 **Rule:** Never instruct a subagent to "launch a worker" or "delegate to a subagent" in its prompt. All parallelization decisions happen at the parent level. Subagents execute sequentially with their available tools. If a task needs decomposition, the parent splits it into multiple sibling subagents, not nested ones.
 
+---
+
+## 2026-07-01 - Delight Sprint
+
+### motion.button replaces Base UI Button - extract buttonVariants for server components
+- **Problem:** Converting button.tsx to `"use client"` (required for motion.button) broke server
+  components that imported `buttonVariants()` for className generation.
+- **Root cause:** Server Components cannot import from `"use client"` modules. `buttonVariants` is a
+  pure function (no hooks/state) but was co-located with the client Button.
+- **Fix:** Extract `buttonVariants` into a separate `button-variants.ts` (no directive) that both
+  server and client code can import.
+- **Rule:** When upgrading a UI primitive to a client component, extract any pure utilities used by
+  server code into a directive-free sibling module.
+
+### Spring physics: stiffness 500 / damping 30 is the sweet spot for buttons
+- **Finding:** Linear and Raycast both use similar configs. Stiffness 500 + damping 30 gives a fast
+  settle with barely-perceptible overshoot. Lower damping (25) on the sidebar indicator gives more
+  visible spring for route changes (a different interaction frequency).
+- **Rule:** High-frequency interactions (buttons, toggles) use higher damping (30). Lower-frequency
+  indicators (route change, panel open) use lower damping (25) for more expression.
+
+### Web Audio API: always ramp gain to avoid clicks
+- **Finding:** Starting/stopping an OscillatorNode produces an audible click at the discontinuity.
+- **Fix:** Use a GainNode with a 2-5ms linear ramp at both attack and release.
+- **Rule:** Never start an oscillator at full gain. Always ramp: `gain.linearRampToValueAtTime(target, now + 0.005)`.
+
