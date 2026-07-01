@@ -415,3 +415,7 @@ A module is **not done** until all of the following are true (evidence shown, no
   production via CLI. Vercel build green (Turbopack, Next.js 16.2.9, all routes resolved). Final
   gate fresh: `tsc` (0), `lint` (0), `npm test` (**418 passing**, 46 files), `npm run build`
   (success). Committed/pushed to `origin/main`. **ALL WAVES COMPLETE. SHIPPED.**
+- **2026-07-01** - Delight Sprint Phase 1: Added motion design tokens (duration/easing CSS custom
+  properties with prefers-reduced-motion fallbacks), shadow depth system (depth-1/2/3 + glow-primary
+  + ring-pulse + scroll-progress), and enabled native View Transitions (experimental.viewTransition
+  in next.config.ts with fade-in/out CSS). Gate: tsc (0), test (418 pass), build (success).
