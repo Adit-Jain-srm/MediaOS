@@ -1,9 +1,9 @@
 "use client";
 
 import { Robot, User } from "@phosphor-icons/react";
-import { motion, useReducedMotion } from "motion/react";
 
 import { cn } from "@/lib/utils";
+import { SlideUp } from "@/components/motion";
 
 import type { UiMessage } from "./use-operator";
 import { PlanPanel } from "./plan-panel";
@@ -15,14 +15,12 @@ import { ToolCallCard } from "./tool-call-card";
  */
 export function MessageBubble({ message, compact }: { message: UiMessage; compact?: boolean }) {
   const isAssistant = message.role === "assistant";
-  const reduced = useReducedMotion();
 
   return (
-    <motion.div
+    <SlideUp
       className="flex gap-2.5"
-      initial={reduced ? false : { opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+      y={12}
+      duration={0.2}
     >
       <Avatar role={message.role} />
       <div className="min-w-0 flex-1 space-y-2">
@@ -45,7 +43,7 @@ export function MessageBubble({ message, compact }: { message: UiMessage; compac
           <div className={cn("space-y-1.5", compact && "space-y-1")}>{message.tools.map((tool) => <ToolCallCard key={tool.callId} tool={tool} />)}</div>
         ) : null}
       </div>
-    </motion.div>
+    </SlideUp>
   );
 }
 
