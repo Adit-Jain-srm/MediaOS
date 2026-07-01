@@ -63,6 +63,7 @@ export interface OperatorPersistence {
   finishRun(runId: string | null, patch: FinishRunPatch): Promise<void>;
   listConversations(campaignId?: string): Promise<AgentConversationSummary[]>;
   listMessages(conversationId: string): Promise<AgentMessage[]>;
+  deleteConversation(conversationId: string): Promise<void>;
 }
 
 /** Supabase-backed implementation, scoped to a single authenticated user (RLS still applies). */
@@ -175,6 +176,16 @@ export function createSupabasePersistence(client: OperatorDbClient, userId: stri
         return [];
       }
     },
+
+    async deleteConversation(conversationId) {
+      try {
+        await db.from("agent_messages").delete().eq("conversation_id", conversationId);
+        await db.from("agent_runs").delete().eq("conversation_id", conversationId);
+        await db.from("agent_conversations").delete().eq("id", conversationId).eq("user_id", userId);
+      } catch (error) {
+        logger.error("operator.persistence deleteConversation failed", error, { conversationId });
+      }
+    },
   };
 }
 
@@ -197,6 +208,9 @@ export const noopPersistence: OperatorPersistence = {
   },
   async listMessages() {
     return [];
+  },
+  async deleteConversation() {
+    /* no-op */
   },
 };
 

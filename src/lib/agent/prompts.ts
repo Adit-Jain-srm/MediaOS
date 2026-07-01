@@ -38,6 +38,8 @@ export interface OperatorPromptContext {
   tools?: { name: string; description: string }[];
   /** Active campaign name, if the conversation is scoped to one. */
   campaignName?: string;
+  /** Current page the user is viewing (path). */
+  currentPath?: string;
   /** Anything else worth grounding the agent in (today's date, brand voice, ...). */
   extraContext?: string;
 }
@@ -52,6 +54,10 @@ export function buildOperatorSystemPrompt(context: OperatorPromptContext = {}): 
 
   if (context.campaignName) {
     sections.push(`Active campaign: ${context.campaignName}.`, "");
+  }
+
+  if (context.currentPath) {
+    sections.push(`The user is currently viewing: ${context.currentPath}`, "");
   }
 
   if (context.tools && context.tools.length > 0) {

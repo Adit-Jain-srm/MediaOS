@@ -16,10 +16,11 @@ import { streamOperatorRun, type OperatorRunInput } from "@/lib/agent/runtime";
 /**
  * Operator chat endpoint.
  *
- * - `POST` drives the runtime and streams the run back as NDJSON
+ * - `POST` drives the runtime and streams the run back as SSE
  *   (`OperatorEvent`s the UI reduces into a live plan, tool calls, and messages).
  * - `GET`  returns campaign-scoped history (conversation list, or one
  *   conversation's messages) so the Operator has memory across sessions.
+ * - `DELETE` removes a conversation and all its messages/runs.
  *
  * Auth is enforced via the Supabase server client when configured. When Supabase
  * is unconfigured the endpoint degrades to an offline demo user (no persistence)
@@ -47,6 +48,7 @@ const postBodySchema = z.object({
   conversationId: z.string().min(1).max(100).optional(),
   campaignId: z.string().min(1).max(100).optional(),
   campaignName: z.string().max(200).optional(),
+  currentPath: z.string().max(200).optional(),
   history: z
     .array(z.object({ role: messageRoleSchema, content: z.string().max(8000) }))
     .max(50)
@@ -74,6 +76,7 @@ export async function POST(req: Request): Promise<Response> {
     conversationId: parsed.data.conversationId,
     campaignId: parsed.data.campaignId,
     campaignName: parsed.data.campaignName,
+    currentPath: parsed.data.currentPath,
     history: parsed.data.history,
   };
 
@@ -81,10 +84,10 @@ export async function POST(req: Request): Promise<Response> {
 
   return new Response(stream, {
     headers: {
-      "content-type": "application/x-ndjson; charset=utf-8",
+      "content-type": "text/event-stream; charset=utf-8",
       "cache-control": "no-store, no-transform",
-      // Disable proxy buffering so events flush immediately.
       "x-accel-buffering": "no",
+      "connection": "keep-alive",
     },
   });
 }
@@ -106,6 +109,25 @@ export async function GET(req: Request): Promise<Response> {
   } catch (error) {
     logger.error("operator.route GET failed", error);
     return Response.json({ conversations: [], messages: [] });
+  }
+}
+
+export async function DELETE(req: Request): Promise<Response> {
+  const auth = await resolveAuth();
+  if (!auth.ok) return auth.response;
+
+  const url = new URL(req.url);
+  const conversationId = url.searchParams.get("conversationId");
+  if (!conversationId) {
+    return jsonError(400, "Missing conversationId parameter");
+  }
+
+  try {
+    await auth.persistence.deleteConversation(conversationId);
+    return Response.json({ ok: true });
+  } catch (error) {
+    logger.error("operator.route DELETE failed", error);
+    return jsonError(500, "Failed to delete conversation");
   }
 }
 

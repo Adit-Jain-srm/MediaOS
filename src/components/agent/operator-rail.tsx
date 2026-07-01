@@ -2,6 +2,7 @@
 
 import { ArrowsOutSimple, NotePencil } from "@phosphor-icons/react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
@@ -15,7 +16,8 @@ import { OperatorChat } from "./operator-chat";
  * not a placeholder. Its own controller keeps a lightweight side conversation.
  */
 export function OperatorRail() {
-  const controller = useOperator();
+  const pathname = usePathname();
+  const controller = useOperator({ currentPath: pathname });
 
   return (
     <div className="flex h-full min-h-0 flex-col">

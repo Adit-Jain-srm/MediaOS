@@ -1,8 +1,8 @@
 /**
  * Operator streaming protocol.
  *
- * The runtime emits a stream of small, typed `OperatorEvent`s (newline-delimited
- * JSON) that the UI reduces into state: a visible plan, live tool calls, streamed
+ * The runtime emits a stream of typed `OperatorEvent`s as Server-Sent Events
+ * (SSE) that the UI reduces into state: a visible plan, live tool calls, streamed
  * assistant text, and suggested next actions. Keeping our own event union (rather
  * than leaning on the AI SDK's wire format) lets the UI be fully demoable offline
  * and keeps the client decoupled from the model provider.
@@ -53,26 +53,33 @@ export type OperatorEvent =
 
 export type OperatorEventType = OperatorEvent["type"];
 
-/** Serializes one event as a single NDJSON line (trailing newline included). */
-export function encodeEvent(event: OperatorEvent): string {
-  return `${JSON.stringify(event)}\n`;
+/** Serializes one event as an SSE frame (event + data + trailing blank line). */
+export function encodeEvent(event: OperatorEvent, id?: number): string {
+  const lines: string[] = [];
+  if (id !== undefined) lines.push(`id: ${id}`);
+  lines.push(`event: ${event.type}`);
+  lines.push(`data: ${JSON.stringify(event)}`);
+  lines.push("");
+  return lines.join("\n") + "\n";
 }
 
 /**
- * Incrementally parses NDJSON from a streamed text buffer. Returns the complete
- * events found plus any trailing partial line (`rest`) the caller should prepend
- * to the next chunk. Malformed lines are skipped rather than throwing, so one bad
- * frame never breaks the stream.
+ * Incrementally parses SSE from a streamed text buffer. Returns the complete
+ * events found plus any trailing partial block (`rest`) the caller should prepend
+ * to the next chunk. Keepalive comments (`:` lines) and malformed frames are
+ * skipped rather than throwing, so one bad frame never breaks the stream.
  */
 export function decodeEvents(buffer: string): { events: OperatorEvent[]; rest: string } {
-  const lines = buffer.split("\n");
-  const rest = lines.pop() ?? "";
+  const parts = buffer.split("\n\n");
+  const rest = parts.pop() ?? "";
   const events: OperatorEvent[] = [];
 
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed) continue;
-    const parsed = safeParseEvent(trimmed);
+  for (const part of parts) {
+    if (!part.trim() || part.trim().startsWith(":")) continue;
+    const dataLine = part.split("\n").find((line) => line.startsWith("data: "));
+    if (!dataLine) continue;
+    const json = dataLine.slice(6);
+    const parsed = safeParseEvent(json);
     if (parsed) events.push(parsed);
   }
 

@@ -12,7 +12,7 @@ import {
 import type { AgentMessage, AgentPlan, AgentToolResult } from "@/lib/agent/types";
 
 /**
- * Client controller for an Operator conversation. Owns the fetch + NDJSON stream
+ * Client controller for an Operator conversation. Owns the fetch + SSE stream
  * decode and reduces `OperatorEvent`s into render-ready state: a transcript of
  * messages (each assistant turn carrying its plan + live tool calls), suggested
  * next actions, notices, and the live/demo mode badge.
@@ -47,6 +47,7 @@ export type OperatorStatus = "idle" | "streaming" | "done" | "error";
 export interface UseOperatorOptions {
   campaignId?: string;
   campaignName?: string;
+  currentPath?: string;
 }
 
 export interface OperatorController {
@@ -62,6 +63,7 @@ export interface OperatorController {
   stop: () => void;
   reset: () => void;
   loadConversation: (conversationId: string) => Promise<void>;
+  deleteConversation: (conversationId: string) => Promise<void>;
 }
 
 const ENDPOINT = "/api/operator/chat";
@@ -180,6 +182,7 @@ export function useOperator(options: UseOperatorOptions = {}): OperatorControlle
           conversationId: conversationRef.current,
           campaignId: options.campaignId,
           campaignName: options.campaignName,
+          currentPath: options.currentPath,
           history,
         },
         signal: controller.signal,
@@ -206,7 +209,7 @@ export function useOperator(options: UseOperatorOptions = {}): OperatorControlle
           abortRef.current = null;
         });
     },
-    [messages, options.campaignId, options.campaignName, reduce, patchActive, status],
+    [messages, options.campaignId, options.campaignName, options.currentPath, reduce, patchActive, status],
   );
 
   const stop = useCallback(() => {
@@ -254,6 +257,21 @@ export function useOperator(options: UseOperatorOptions = {}): OperatorControlle
     [],
   );
 
+  const deleteConversation = useCallback(
+    async (id: string) => {
+      try {
+        const res = await fetch(`${ENDPOINT}?conversationId=${encodeURIComponent(id)}`, { method: "DELETE" });
+        if (!res.ok) throw new Error("Delete failed");
+      } catch {
+        // swallow - UI will refresh via query invalidation
+      }
+      if (conversationRef.current === id) {
+        reset();
+      }
+    },
+    [reset],
+  );
+
   return {
     messages,
     status,
@@ -267,6 +285,7 @@ export function useOperator(options: UseOperatorOptions = {}): OperatorControlle
     stop,
     reset,
     loadConversation,
+    deleteConversation,
   };
 }
 
@@ -311,8 +330,10 @@ async function runStream({ body, signal, onEvent }: RunStreamArgs): Promise<RunO
     }
 
     // Flush any trailing buffered event.
-    const tail = decodeEvents(`${buffer}\n`);
-    for (const event of tail.events) onEvent(event);
+    if (buffer.trim()) {
+      const tail = decodeEvents(`${buffer}\n\n`);
+      for (const event of tail.events) onEvent(event);
+    }
 
     return { type: "done" };
   } catch (cause) {

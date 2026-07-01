@@ -3,40 +3,51 @@ import { describe, expect, it } from "vitest";
 import { decodeEvents, encodeEvent, type OperatorEvent } from "./events";
 
 describe("operator event codec", () => {
-  it("round-trips an event as a single NDJSON line", () => {
+  it("round-trips an event as a single SSE frame", () => {
     const event: OperatorEvent = { type: "message", delta: "hello" };
-    const line = encodeEvent(event);
-    expect(line.endsWith("\n")).toBe(true);
+    const frame = encodeEvent(event);
+    expect(frame).toContain("event: message");
+    expect(frame).toContain(`data: ${JSON.stringify(event)}`);
+    expect(frame.endsWith("\n\n")).toBe(true);
 
-    const { events, rest } = decodeEvents(line);
+    const { events, rest } = decodeEvents(frame);
     expect(events).toEqual([event]);
     expect(rest).toBe("");
   });
 
-  it("decodes multiple events and buffers a trailing partial line", () => {
+  it("decodes multiple events and buffers a trailing partial frame", () => {
     const a: OperatorEvent = { type: "status", status: "planning" };
     const b: OperatorEvent = { type: "run-finish", status: "completed" };
-    const buffer = `${JSON.stringify(a)}\n${JSON.stringify(b)}`; // no trailing newline
+    const frameA = encodeEvent(a);
+    const partialB = `event: run-finish\ndata: ${JSON.stringify(b)}`; // no trailing \n\n
+    const buffer = `${frameA}${partialB}`;
 
     const first = decodeEvents(buffer);
     expect(first.events).toEqual([a]);
-    expect(first.rest).toBe(JSON.stringify(b));
+    expect(first.rest).toBe(partialB);
 
-    const second = decodeEvents(`${first.rest}\n`);
+    const second = decodeEvents(`${first.rest}\n\n`);
     expect(second.events).toEqual([b]);
     expect(second.rest).toBe("");
   });
 
-  it("skips malformed and blank lines without throwing", () => {
+  it("skips malformed frames and keepalive comments without throwing", () => {
     const valid: OperatorEvent = { type: "notice", level: "info", message: "ok" };
-    const buffer = `not-json\n\n${JSON.stringify(valid)}\n{"partial":\n`;
+    const buffer = `: keepalive\n\nevent: broken\nno-data-here\n\nevent: notice\ndata: ${JSON.stringify(valid)}\n\n`;
 
     const { events } = decodeEvents(buffer);
     expect(events).toEqual([valid]);
   });
 
-  it("ignores JSON that is not an object with a type", () => {
-    const { events } = decodeEvents("123\n\"string\"\nnull\n");
+  it("ignores frames without a data line", () => {
+    const buffer = "event: message\nid: 1\n\nevent: plan\n\n";
+    const { events } = decodeEvents(buffer);
     expect(events).toEqual([]);
+  });
+
+  it("includes event id when provided", () => {
+    const event: OperatorEvent = { type: "message", delta: "hi" };
+    const frame = encodeEvent(event, 42);
+    expect(frame).toContain("id: 42");
   });
 });

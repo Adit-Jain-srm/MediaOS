@@ -50,6 +50,9 @@ function recordingPersistence(): Recording {
     async listMessages() {
       return [];
     },
+    async deleteConversation() {
+      /* no-op */
+    },
   };
 }
 

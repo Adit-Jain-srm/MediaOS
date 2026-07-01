@@ -102,6 +102,7 @@ export interface OperatorRunInput {
   conversationId?: string;
   campaignId?: string;
   campaignName?: string;
+  currentPath?: string;
 }
 
 export interface OperatorRunContext {
@@ -326,9 +327,10 @@ export async function* runOperator(
 /* -------------------------------------------------------------------------- */
 
 /**
- * Wraps `runOperator` as a UTF-8 NDJSON `ReadableStream` for a route handler.
+ * Wraps `runOperator` as a UTF-8 SSE `ReadableStream` for a route handler.
  * Errors thrown by the generator are converted into a trailing `error` event so
- * the client always sees a clean end-of-stream.
+ * the client always sees a clean end-of-stream. A keepalive comment is emitted
+ * every 15 seconds to prevent proxy timeouts.
  */
 export function streamOperatorRun(
   input: OperatorRunInput,
@@ -337,20 +339,32 @@ export function streamOperatorRun(
 ): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder();
   const generator = runOperator(input, ctx, deps);
+  let eventId = 0;
+  let keepaliveTimer: ReturnType<typeof setInterval> | null = null;
 
   return new ReadableStream<Uint8Array>({
     async start(controller) {
+      keepaliveTimer = setInterval(() => {
+        try {
+          controller.enqueue(encoder.encode(": keepalive\n\n"));
+        } catch {
+          // Controller may already be closed
+        }
+      }, 15_000);
+
       try {
         for await (const event of generator) {
-          controller.enqueue(encoder.encode(encodeEvent(event)));
+          controller.enqueue(encoder.encode(encodeEvent(event, eventId++)));
         }
       } catch (error) {
-        controller.enqueue(encoder.encode(encodeEvent({ type: "error", message: toErrorMessage(error) })));
+        controller.enqueue(encoder.encode(encodeEvent({ type: "error", message: toErrorMessage(error) }, eventId++)));
       } finally {
+        if (keepaliveTimer) clearInterval(keepaliveTimer);
         controller.close();
       }
     },
     async cancel() {
+      if (keepaliveTimer) clearInterval(keepaliveTimer);
       await generator.return(undefined);
     },
   });
@@ -566,6 +580,7 @@ function buildSystemPrompt(input: OperatorRunInput, toolDefs: AgentTool[], plan:
   return buildOperatorSystemPrompt({
     tools: toolDefs.map((t) => ({ name: t.name, description: t.description })),
     campaignName: input.campaignName,
+    currentPath: input.currentPath,
     extraContext,
   });
 }

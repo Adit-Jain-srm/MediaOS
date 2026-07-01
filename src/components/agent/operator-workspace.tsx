@@ -1,7 +1,8 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { ChatText, Plus } from "@phosphor-icons/react";
+import { ChatText, Plus, Trash } from "@phosphor-icons/react";
+import { usePathname } from "next/navigation";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -26,7 +27,8 @@ interface ConversationSummary {
  * configured, empty and gracefully hidden offline.
  */
 export function OperatorWorkspace({ campaignId, campaignName }: { campaignId?: string; campaignName?: string }) {
-  const controller = useOperator({ campaignId, campaignName });
+  const pathname = usePathname();
+  const controller = useOperator({ campaignId, campaignName, currentPath: pathname });
 
   const { data: conversations = [] } = useQuery<ConversationSummary[]>({
     queryKey: ["operator", "conversations", campaignId ?? null, controller.conversationId ?? null],
@@ -55,7 +57,7 @@ export function OperatorWorkspace({ campaignId, campaignName }: { campaignId?: s
                   type="button"
                   onClick={() => void controller.loadConversation(conversation.id)}
                   className={cn(
-                    "flex w-full cursor-pointer items-start gap-2 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-muted",
+                    "group/conv flex w-full cursor-pointer items-start gap-2 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-muted",
                     controller.conversationId === conversation.id && "bg-muted",
                   )}
                 >
@@ -64,6 +66,18 @@ export function OperatorWorkspace({ campaignId, campaignName }: { campaignId?: s
                     <span className="block truncate text-xs font-medium text-foreground">{conversation.title}</span>
                     <span className="block text-[10px] text-muted-foreground">{formatDate(conversation.updatedAt)}</span>
                   </span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void controller.deleteConversation(conversation.id);
+                    }}
+                    className="ml-auto opacity-0 group-hover/conv:opacity-100 transition-opacity p-1 rounded hover:bg-destructive/10 hover:text-destructive"
+                    aria-label="Delete conversation"
+                    title="Delete conversation"
+                  >
+                    <Trash className="size-3" />
+                  </button>
                 </button>
               ))
             )}
