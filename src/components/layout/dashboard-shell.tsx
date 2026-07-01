@@ -7,7 +7,6 @@ import { TopBar } from "./top-bar";
 import { AgentRail } from "./agent-rail";
 import { CommandPalette } from "./command-palette";
 import { DashboardErrorBoundary } from "./error-boundary";
-import { FloatingSuggestions } from "./floating-suggestions";
 import { OperatorRail } from "@/components/agent/operator-rail";
 
 /**
@@ -28,7 +27,6 @@ export function DashboardShell({ children }: { children: ReactNode }) {
           <OperatorRail />
         </AgentRail>
         <CommandPalette />
-        <FloatingSuggestions />
       </div>
     </DashboardErrorBoundary>
   );
