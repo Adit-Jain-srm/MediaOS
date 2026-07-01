@@ -8,6 +8,7 @@ import { SlideUp } from "@/components/motion";
 import type { UiMessage } from "./use-operator";
 import { PlanPanel } from "./plan-panel";
 import { ToolCallCard } from "./tool-call-card";
+import { TypingDots } from "./typing-dots";
 
 /**
  * One conversation turn. Assistant turns carry the run's plan, streamed
@@ -36,7 +37,9 @@ export function MessageBubble({ message, compact }: { message: UiMessage; compac
             {message.streaming ? <Caret /> : null}
           </div>
         ) : isAssistant && message.streaming && message.tools.length === 0 ? (
-          <ThinkingDots />
+          <div className="flex items-center gap-1 text-muted-foreground" aria-label="Operator is thinking">
+            <TypingDots />
+          </div>
         ) : null}
 
         {message.tools.length > 0 ? (
@@ -63,18 +66,4 @@ function Avatar({ role }: { role: UiMessage["role"] }) {
 
 function Caret() {
   return <span className="ml-0.5 inline-block h-3.5 w-1.5 translate-y-0.5 shimmer bg-primary/70 align-baseline" aria-hidden />;
-}
-
-function ThinkingDots() {
-  return (
-    <div className="flex items-center gap-1 text-muted-foreground" aria-label="Operator is thinking">
-      {[0, 1, 2].map((index) => (
-        <span
-          key={index}
-          className="size-1.5 animate-bounce rounded-full bg-muted-foreground/60 motion-reduce:animate-none"
-          style={{ animationDelay: `${index * 0.15}s` }}
-        />
-      ))}
-    </div>
-  );
 }

@@ -57,7 +57,7 @@ export function TimeSeriesChart({ series, trend, metric, height = 280 }: TimeSer
           dot={false}
           activeDot={{ r: 3 }}
           isAnimationActive={!reduced}
-          animationDuration={800}
+          animationDuration={400}
           animationEasing="ease-out"
         />
         <Line

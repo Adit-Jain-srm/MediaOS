@@ -17,6 +17,7 @@ import {
   type SummaryDeltas,
 } from "@/lib/analytics";
 import { Metric } from "@/components/ui/states";
+import { CountUp } from "@/components/motion";
 
 interface MetricCardsProps {
   summary: MetricSummary;
@@ -32,12 +33,12 @@ export function MetricCards({ summary, deltas }: MetricCardsProps) {
 
   return (
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
-      <Metric label="Spend" value={formatCurrency(summary.spend)} delta={change("spend")} deltaLabel={formatChangePct(deltas.spend.changePct)} icon={<CurrencyDollar weight="duotone" />} />
-      <Metric label="Conversions" value={formatCompact(summary.conversions)} delta={change("conversions")} deltaLabel={formatChangePct(deltas.conversions.changePct)} icon={<Target weight="duotone" />} />
-      <Metric label="CPA" value={formatCurrency(summary.cpa)} delta={change("cpa")} deltaLabel={formatChangePct(deltas.cpa.changePct)} invertDelta icon={<Receipt weight="duotone" />} />
-      <Metric label="CTR" value={formatPercent(summary.ctr)} delta={change("ctr")} deltaLabel={formatChangePct(deltas.ctr.changePct)} icon={<CursorClick weight="duotone" />} />
-      <Metric label="CVR" value={formatPercent(summary.cvr)} delta={change("cvr")} deltaLabel={formatChangePct(deltas.cvr.changePct)} icon={<Funnel weight="duotone" />} />
-      <Metric label="ROAS" value={formatMultiplier(summary.roas)} delta={change("roas")} deltaLabel={formatChangePct(deltas.roas.changePct)} icon={<ChartLineUp weight="duotone" />} />
+      <Metric label="Spend" value={<CountUp value={summary.spend} format={formatCurrency} />} delta={change("spend")} deltaLabel={formatChangePct(deltas.spend.changePct)} icon={<CurrencyDollar weight="duotone" />} />
+      <Metric label="Conversions" value={<CountUp value={summary.conversions} format={formatCompact} />} delta={change("conversions")} deltaLabel={formatChangePct(deltas.conversions.changePct)} icon={<Target weight="duotone" />} />
+      <Metric label="CPA" value={<CountUp value={summary.cpa} format={formatCurrency} />} delta={change("cpa")} deltaLabel={formatChangePct(deltas.cpa.changePct)} invertDelta icon={<Receipt weight="duotone" />} />
+      <Metric label="CTR" value={<CountUp value={summary.ctr} format={formatPercent} />} delta={change("ctr")} deltaLabel={formatChangePct(deltas.ctr.changePct)} icon={<CursorClick weight="duotone" />} />
+      <Metric label="CVR" value={<CountUp value={summary.cvr} format={formatPercent} />} delta={change("cvr")} deltaLabel={formatChangePct(deltas.cvr.changePct)} icon={<Funnel weight="duotone" />} />
+      <Metric label="ROAS" value={<CountUp value={summary.roas} format={formatMultiplier} />} delta={change("roas")} deltaLabel={formatChangePct(deltas.roas.changePct)} icon={<ChartLineUp weight="duotone" />} />
     </div>
   );
 }
