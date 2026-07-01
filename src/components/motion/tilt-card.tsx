@@ -13,7 +13,7 @@ export interface TiltCardProps {
 
 /**
  * Lightweight GPU-only parallax tilt on hover using transforms.
- * No useState — pure motion values so no React re-renders on mouse move.
+ * No useState - pure motion values so no React re-renders on mouse move.
  * Reduced-motion: static, no tilt.
  */
 export function TiltCard({ children, className, maxTilt = 2 }: TiltCardProps) {

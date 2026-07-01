@@ -187,7 +187,7 @@ export function ResearchWorkspace({ projectId, projectName, params, initialRepor
             <h2 className="font-heading text-lg font-semibold tracking-tight text-foreground">{projectName}</h2>
             {running ? (
               <Badge variant="secondary" className="font-mono">
-                <Sparkle className="size-3 animate-pulse motion-reduce:animate-none" /> running
+                <Sparkle className="size-3 shimmer" /> running
               </Badge>
             ) : hasReport ? (
               <Badge variant="outline" className="font-mono text-success">ready</Badge>

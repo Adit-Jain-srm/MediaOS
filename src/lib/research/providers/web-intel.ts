@@ -61,7 +61,7 @@ export class WebIntelligenceProvider extends ResearchProvider<WebIntelQuery> {
       const advertiser = extractMarkdownHeading(scrape.markdown, 1) ?? new URL(scrape.url).hostname.replace(/^www\./, "");
       const positioning = extractMarkdownHeading(scrape.markdown, 2) ?? firstParagraph(scrape.markdown);
       const tagline = firstParagraph(scrape.markdown);
-      const copy = [positioning, tagline].filter(Boolean).join(" — ");
+      const copy = [positioning, tagline].filter(Boolean).join(" - ");
       if (!copy) continue;
 
       const citation = toCitation(this.name, { url: scrape.url, title: advertiser, snippet: positioning, confidence: 0.65 });
@@ -103,7 +103,7 @@ export class WebIntelligenceProvider extends ResearchProvider<WebIntelQuery> {
         kind: "competitor_ad",
         data: {
           platform: inferPlatformFromUrl(hit.url),
-          advertiser: (hit.title ?? "").split(/\s[-|–—]\s|\s\|\s/)[0]?.trim() || undefined,
+          advertiser: (hit.title ?? "").split(/\s[-|]\s|\s\|\s/)[0]?.trim() || undefined,
           creativeType: "positioning",
           copy: hit.snippet,
           hooksUsed: classifyHooks(`${hit.title ?? ""} ${hit.snippet}`),

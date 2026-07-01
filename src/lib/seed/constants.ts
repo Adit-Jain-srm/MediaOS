@@ -1,5 +1,5 @@
 /**
- * Canonical demo identity — the ONE source of truth for all demo data across
+ * Canonical demo identity - the ONE source of truth for all demo data across
  * every MediaOS module. Import from here, never define module-local demo ids.
  *
  * These ids are stable UUIDs (v4-shaped) so they pass `z.uuid()` validators and
@@ -19,7 +19,7 @@ export const DEMO_USER_ID = "00000000-0000-4000-8000-000000000099";
 /** The research project linked to the demo campaign. */
 export const DEMO_RESEARCH_PROJECT_ID = "00000000-0000-4000-8000-000000000002";
 
-/** Creative IDs — stable across modules so analytics metrics resolve to real creatives. */
+/** Creative IDs - stable across modules so analytics metrics resolve to real creatives. */
 export const DEMO_CREATIVE_IDS = {
   META_HERO: "d0000000-0000-4000-8000-000000000011",
   META_VARIANT_B: "d0000000-0000-4000-8000-000000000012",

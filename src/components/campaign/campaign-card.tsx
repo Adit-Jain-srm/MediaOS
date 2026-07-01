@@ -52,7 +52,7 @@ export function CampaignCard({ campaign }: { campaign: CampaignView }) {
               <UsersThree weight="duotone" className="size-3" />
               {campaign.brief.personas.length}
             </span>
-            <span>{campaign.budget.total ? formatCurrency(campaign.budget.total, campaign.budget.currency) : "—"}</span>
+            <span>{campaign.budget.total ? formatCurrency(campaign.budget.total, campaign.budget.currency) : "-"}</span>
           </div>
         </div>
 

@@ -64,7 +64,7 @@ function Avatar({ role }: { role: UiMessage["role"] }) {
 }
 
 function Caret() {
-  return <span className="ml-0.5 inline-block h-3.5 w-1.5 translate-y-0.5 animate-pulse bg-primary/70 align-baseline motion-reduce:animate-none" aria-hidden />;
+  return <span className="ml-0.5 inline-block h-3.5 w-1.5 translate-y-0.5 shimmer bg-primary/70 align-baseline" aria-hidden />;
 }
 
 function ThinkingDots() {

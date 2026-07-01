@@ -207,7 +207,7 @@ export function LandingEditor({ initialPage, campaignName, azureConfigured }: La
             </Button>
           </div>
           <Button variant="outline" size="sm" onClick={onRegeneratePage} disabled={isPending}>
-            <Sparkle weight={busy === "regen" ? "fill" : "regular"} className={busy === "regen" ? "animate-pulse motion-reduce:animate-none" : ""} />
+            <Sparkle weight={busy === "regen" ? "fill" : "regular"} className={busy === "regen" ? "shimmer" : ""} />
             Regenerate
           </Button>
           <Button variant="outline" size="sm" onClick={onCreateVariant} disabled={isPending}>

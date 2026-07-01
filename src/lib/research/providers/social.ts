@@ -72,7 +72,7 @@ export class SocialListeningProvider extends ResearchProvider<SocialQuery> {
         items.push({
           kind: "trend_signal",
           data: {
-            topic: hit.title.replace(/\s[-|–—].*$/, "").trim(),
+            topic: hit.title.replace(/\s[-|].*$/, "").trim(),
             velocity: estimateVelocityFromRank((hit.position ?? i + 1)),
             sentiment: roughSentiment(content),
             source: `social:${platform}`,

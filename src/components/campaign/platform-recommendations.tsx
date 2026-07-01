@@ -44,7 +44,7 @@ export function PlatformRecommendations({
       {onRecommend ? (
         <div className="flex justify-end">
           <Button type="button" variant="outline" size="sm" onClick={onRecommend} disabled={recommending}>
-            <Sparkle weight="fill" className={cn(recommending && "animate-pulse motion-reduce:animate-none")} />
+            <Sparkle weight="fill" className={cn(recommending && "shimmer")} />
             {recommending ? "Analyzing…" : "AI recommend channels"}
           </Button>
         </div>

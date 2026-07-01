@@ -61,7 +61,7 @@ export function safeDiv(numerator: number, denominator: number, fallback = 0): n
 
 /**
  * Signed percentage change from `previous` to `current`. Returns `null` when the
- * baseline is 0 (an undefined change) so callers can render "—" instead of ∞.
+ * baseline is 0 (an undefined change) so callers can render "-" instead of ∞.
  */
 export function percentChange(current: number, previous: number): number | null {
   if (!Number.isFinite(current) || !Number.isFinite(previous) || previous === 0) return null;

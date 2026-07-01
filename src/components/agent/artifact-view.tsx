@@ -229,7 +229,7 @@ function PersonaCard({ persona }: { persona: ResearchPersonaCard }) {
 function ResearchReportArtifact({ data }: { data: ResearchReportArtifactData }) {
   return (
     <ArtifactFrame icon={<MagnifyingGlass weight="fill" />} title={`Research · ${data.sourceCount} sources`}>
-      <p className="mb-2 text-[11px] text-muted-foreground">“{data.query}”</p>
+      <p className="mb-2 text-[11px] text-muted-foreground">&ldquo;{data.query}&rdquo;</p>
 
       {data.personas.length > 0 ? (
         <Section label="Personas">
@@ -247,7 +247,7 @@ function ResearchReportArtifact({ data }: { data: ResearchReportArtifactData }) 
             {data.painPoints.map((pain, index) => (
               <li key={index} className="text-[11px] text-foreground/80">
                 • {pain.summary}
-                {pain.quote ? <span className="text-muted-foreground"> — “{pain.quote}”</span> : null}
+                {pain.quote ? <span className="text-muted-foreground"> - &ldquo;{pain.quote}&rdquo;</span> : null}
               </li>
             ))}
           </ul>
@@ -259,7 +259,7 @@ function ResearchReportArtifact({ data }: { data: ResearchReportArtifactData }) 
           <ul className="space-y-0.5">
             {data.opportunities.map((opp, index) => (
               <li key={index} className="text-[11px] text-foreground/80">
-                • <span className="font-medium">{opp.title}</span> — {opp.rationale}
+                • <span className="font-medium">{opp.title}</span>: {opp.rationale}
               </li>
             ))}
           </ul>
@@ -325,7 +325,7 @@ function CampaignArtifact({ data }: { data: CampaignArtifactData }) {
         </Badge>
       </div>
       <dl className="mt-1.5 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[11px]">
-        <Row label="Objective" value={data.objective || "—"} />
+        <Row label="Objective" value={data.objective || "-"} />
         {data.offer ? <Row label="Offer" value={data.offer} /> : null}
         <Row label="Personas" value={String(data.personaCount)} />
         {typeof data.budgetTotal === "number" ? <Row label="Budget" value={formatCurrency(data.budgetTotal)} /> : null}
@@ -610,7 +610,7 @@ function AnomaliesArtifact({ data }: { data: AnomaliesArtifactData }) {
   return (
     <ArtifactFrame icon={<WarningCircle weight="fill" />} title={`Anomalies (${data.total})`}>
       {data.anomalies.length === 0 ? (
-        <p className="text-[11px] text-muted-foreground">No anomalies — delivery is within normal variance.</p>
+        <p className="text-[11px] text-muted-foreground">No anomalies detected; delivery is within normal variance.</p>
       ) : (
         <ul className="space-y-1">
           {data.anomalies.slice(0, 6).map((anomaly, index) => (
@@ -654,7 +654,7 @@ function RecommendationsArtifact({ data }: { data: RecommendationsArtifactData }
   return (
     <ArtifactFrame icon={<Lightbulb weight="fill" />} title={`Recommendations (${data.total})`}>
       {data.recommendations.length === 0 ? (
-        <p className="text-[11px] text-muted-foreground">No recommendations yet — needs more performance history.</p>
+        <p className="text-[11px] text-muted-foreground">No recommendations yet. Needs more performance history.</p>
       ) : (
         <div className="space-y-1.5">
           {data.recommendations.map((rec) => (

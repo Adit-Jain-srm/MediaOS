@@ -78,7 +78,7 @@ export function CampaignHub({ campaign }: { campaign: CampaignView }) {
         <Metric label="Channels" value={platformConfig.platforms.length} icon={<Target weight="duotone" />} />
         <Metric
           label="Budget"
-          value={budget.total ? formatCurrency(budget.total, budget.currency) : "—"}
+          value={budget.total ? formatCurrency(budget.total, budget.currency) : "-"}
           icon={<CurrencyDollar weight="duotone" />}
         />
         <Metric label="Brief complete" value={`${completeness}%`} icon={<CheckCircle weight="duotone" />} />
@@ -90,10 +90,10 @@ export function CampaignHub({ campaign }: { campaign: CampaignView }) {
           <section className="space-y-3 rounded-xl bg-card p-4 ring-1 ring-foreground/10">
             <SectionLabel icon={Megaphone}>Brief</SectionLabel>
             <dl className="grid gap-3 sm:grid-cols-2">
-              <Field label="Objective" value={brief.objective || "—"} />
-              <Field label="Offer" value={brief.offer || "—"} />
-              <Field label="Audience" value={brief.audience || "—"} className="sm:col-span-2" />
-              <Field label="Tone" value={brief.tone || "—"} className="sm:col-span-2" />
+              <Field label="Objective" value={brief.objective || "-"} />
+              <Field label="Offer" value={brief.offer || "-"} />
+              <Field label="Audience" value={brief.audience || "-"} className="sm:col-span-2" />
+              <Field label="Tone" value={brief.tone || "-"} className="sm:col-span-2" />
             </dl>
             {brief.valueProps.length > 0 ? (
               <div className="space-y-1.5">

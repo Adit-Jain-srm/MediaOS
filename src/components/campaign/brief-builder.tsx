@@ -361,7 +361,7 @@ export function BriefBuilder({ initialSeed = null, initialResearchProjectId }: B
                 description="Describe the offer. The AI assistant uses this to draft personas, channels, and budget."
                 action={
                   <Button type="button" size="sm" onClick={onDraftWithAi} disabled={drafting}>
-                    <Sparkle weight="fill" className={cn(drafting && "animate-pulse motion-reduce:animate-none")} />
+                    <Sparkle weight="fill" className={cn(drafting && "shimmer")} />
                     {drafting ? "Drafting…" : "AI draft brief"}
                   </Button>
                 }
@@ -454,7 +454,7 @@ export function BriefBuilder({ initialSeed = null, initialResearchProjectId }: B
                 description="Import cited personas from a research project, or let the assistant suggest some."
                 action={
                   <Button type="button" variant="outline" size="sm" onClick={onSuggestPersonas} disabled={working}>
-                    <Sparkle weight="fill" className={cn(working && "animate-pulse motion-reduce:animate-none")} /> AI suggest
+                    <Sparkle weight="fill" className={cn(working && "shimmer")} /> AI suggest
                   </Button>
                 }
               />
@@ -521,8 +521,8 @@ export function BriefBuilder({ initialSeed = null, initialResearchProjectId }: B
             <div className="space-y-4">
               <StepHeading icon={ClipboardText} title="Review & launch" description="Confirm the brief, then create the campaign as a draft." />
               <ReviewRow label="Campaign">{draft.name || <span className="text-muted-foreground">Unnamed</span>}</ReviewRow>
-              <ReviewRow label="Objective">{OBJECTIVE_LABELS[(draft.brief.objective as CampaignObjective)] ?? draft.brief.objective ?? "—"}</ReviewRow>
-              <ReviewRow label="Product">{draft.brief.product || "—"}</ReviewRow>
+              <ReviewRow label="Objective">{OBJECTIVE_LABELS[(draft.brief.objective as CampaignObjective)] ?? draft.brief.objective ?? "-"}</ReviewRow>
+              <ReviewRow label="Product">{draft.brief.product || "-"}</ReviewRow>
               {draft.brief.offer ? <ReviewRow label="Offer">{draft.brief.offer}</ReviewRow> : null}
               <ReviewRow label="Personas">{summary.personas > 0 ? `${summary.personas} selected` : "None"}</ReviewRow>
               <ReviewRow label="Channels">
@@ -582,7 +582,7 @@ export function BriefBuilder({ initialSeed = null, initialResearchProjectId }: B
             <div className="flex items-center justify-between">
               <dt className="text-muted-foreground">Budget</dt>
               <dd className="font-mono tabular-nums text-foreground">
-                {summary.total ? formatCurrency(summary.total, draft.budget.currency) : "—"}
+                {summary.total ? formatCurrency(summary.total, draft.budget.currency) : "-"}
               </dd>
             </div>
           </dl>

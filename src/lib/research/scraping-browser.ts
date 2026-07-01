@@ -200,7 +200,7 @@ export function parseMetaAdCards(rawTexts: string[]): ScrapedAdCard[] {
 export function parseAdCardsFromMarkdown(markdown: string | undefined): ScrapedAdCard[] {
   if (!markdown) return [];
   const advertiser = extractMarkdownHeading(markdown, 1)
-    ?.replace(/\s*[-–—]\s*active ads.*$/i, "")
+    ?.replace(/\s*[-\u2013\u2014]\s*active ads.*$/i, "")
     .trim();
 
   const copies: string[] = [];

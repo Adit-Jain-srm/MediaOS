@@ -116,7 +116,7 @@ export class CompetitorAdsProvider extends ResearchProvider<CompetitorAdsQuery> 
     // SERP-derived ads.
     const hits = responses.flatMap((r) => r.results);
     for (const hit of hits) {
-      const advertiser = (hit.title ?? "").split(/\s[-|–—]\s|\s\|\s/)[0]?.trim() || undefined;
+      const advertiser = (hit.title ?? "").split(/\s[-|\u2013\u2014]\s|\s\|\s/)[0]?.trim() || undefined;
       const copy = hit.snippet?.trim();
       if (!copy) continue;
 

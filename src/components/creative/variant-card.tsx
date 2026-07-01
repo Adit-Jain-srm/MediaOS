@@ -254,7 +254,7 @@ export function VariantCard({ creative, onUpdated, onRemoved, azureConfigured }:
               ) : (
                 <div key={index} className="flex items-start justify-between gap-2">
                   <p className={cn("text-sm text-pretty", group.role === "headline" || group.role === "hook" ? "font-medium text-foreground" : "text-foreground/80")}>
-                    {field.text || <span className="text-muted-foreground/50">—</span>}
+                    {field.text || <span className="text-muted-foreground/50">-</span>}
                   </p>
                   <CharMeter length={field.length} limit={field.limit} />
                 </div>
@@ -402,7 +402,7 @@ function ImageDialog({
 
         <div className="flex justify-end">
           <Button onClick={generate} disabled={pending}>
-            <Sparkle weight="fill" className={pending ? "animate-pulse motion-reduce:animate-none" : ""} />
+            <Sparkle weight="fill" className={pending ? "shimmer" : ""} />
             {pending ? "Generating…" : "Generate"}
           </Button>
         </div>

@@ -1,7 +1,7 @@
 /**
  * Unified canonical demo seed. Seeds one coherent financial-newsletter campaign
  * ("Retirement Income Weekly") with all downstream data so judges see a complete
- * story in <30s. Idempotent — safe to call on every server boot.
+ * story in <30s. Idempotent - safe to call on every server boot.
  *
  * All ids come from `./constants.ts`, ensuring every module references the same
  * campaign/creative/landing/research/analytics data.

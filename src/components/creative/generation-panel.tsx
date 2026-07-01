@@ -239,7 +239,7 @@ export function GenerationPanel({ campaignId, azureConfigured, defaultPainPoints
           <span />
         )}
         <Button onClick={generate} disabled={running}>
-          <Lightning weight="fill" className={running ? "animate-pulse motion-reduce:animate-none" : ""} />
+          <Lightning weight="fill" className={running ? "shimmer" : ""} />
           {running ? "Generating…" : `Generate ${count} variant${count > 1 ? "s" : ""}`}
         </Button>
       </div>
@@ -252,7 +252,7 @@ export function GenerationPanel({ campaignId, azureConfigured, defaultPainPoints
           )}
         >
           {deltas}
-          <span className="ml-0.5 inline-block h-3 w-1.5 animate-pulse bg-primary align-middle motion-reduce:animate-none" />
+          <span className="ml-0.5 inline-block h-3 w-1.5 shimmer bg-primary align-middle" />
         </div>
       ) : null}
     </section>

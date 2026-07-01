@@ -77,7 +77,7 @@ function platformSentence(platforms: readonly PlatformSummary[]): string | null 
 }
 
 function anomalySentence(anomalies: readonly AnomalyFinding[]): string | null {
-  if (anomalies.length === 0) return "No anomalies detected — delivery is within normal variance.";
+  if (anomalies.length === 0) return "No anomalies detected; delivery is within normal variance.";
   const top = anomalies[0];
   const more = anomalies.length - 1;
   const tail = more > 0 ? ` (+${more} more flagged)` : "";
@@ -87,7 +87,7 @@ function anomalySentence(anomalies: readonly AnomalyFinding[]): string | null {
 function recommendationSentence(recommendations: readonly Recommendation[]): string | null {
   if (recommendations.length === 0) return null;
   const top = recommendations[0];
-  return `Recommended next: ${top.title} — ${top.rationale}`;
+  return `Recommended next: ${top.title}. ${top.rationale}`;
 }
 
 /**

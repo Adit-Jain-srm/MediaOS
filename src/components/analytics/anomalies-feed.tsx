@@ -33,7 +33,7 @@ export function AnomaliesFeed({ anomalies }: AnomaliesFeedProps) {
     return (
       <div className="flex items-center gap-2 rounded-lg border border-dashed border-border bg-card/30 px-4 py-6 text-sm text-muted-foreground">
         <CheckCircle weight="duotone" className="size-4 text-success" />
-        No anomalies — delivery is within normal variance.
+        No anomalies detected; delivery is within normal variance.
       </div>
     );
   }

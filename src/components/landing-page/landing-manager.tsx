@@ -221,9 +221,9 @@ export function LandingManager({ campaignId, campaignName, campaigns, azureConfi
               Leading variant converts at <strong className="font-mono">{pct(group.winner.bestCvr)}</strong> ({pct(group.winner.relativeLift)} relative lift). Ready to promote.
             </span>
           ) : group.winner.reason === "insufficient_data" ? (
-            <span>Gathering data — each variant needs 100+ views before a winner can be called.</span>
+            <span>Gathering data: each variant needs 100+ views before a winner can be called.</span>
           ) : (
-            <span>No clear winner yet — leading CVR {pct(group.winner.bestCvr)}, lift below the 10% threshold.</span>
+            <span>No clear winner yet. Leading CVR {pct(group.winner.bestCvr)}, lift below the 10% threshold.</span>
           )}
           <span className="ml-1 text-muted-foreground">
             ({totalViews} views, {totalLeads} leads total)
@@ -337,7 +337,7 @@ export function LandingManager({ campaignId, campaignName, campaigns, azureConfi
             <Input id="angle" value={angle} onChange={(e) => setAngle(e.target.value)} placeholder="e.g. beat inflation, no-upsell trust" />
           </div>
           <Button onClick={onCreate} disabled={isPending}>
-            <Sparkle weight="fill" className={busy === "create" ? "animate-pulse motion-reduce:animate-none" : ""} />
+            <Sparkle weight="fill" className={busy === "create" ? "shimmer" : ""} />
             Generate page
           </Button>
         </div>

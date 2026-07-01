@@ -61,7 +61,7 @@ describe("templatedBrief", () => {
             metric: "cpa",
             platform: "taboola",
             severity: "high",
-            description: "CPA on Taboola spiked to $42 on 2026-06-24 — 320% above the $10 norm.",
+            description: "CPA on Taboola spiked to $42 on 2026-06-24 (320% above the $10 norm).",
             detectedAt: "2026-06-24T12:00:00.000Z",
             zScore: 4.1,
             value: 42,

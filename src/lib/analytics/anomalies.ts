@@ -133,12 +133,12 @@ function describe(metric: AnomalyMetric, scopeLabel: string, anomaly: SeriesAnom
   const absPct = Math.abs(deltaPct);
   switch (metric) {
     case "cpa":
-      return `CPA on ${scopeLabel} spiked to ${formatCurrency(anomaly.value)} on ${anomaly.date} — ${absPct}% above the ${formatCurrency(anomaly.baseline)} norm.`;
+      return `CPA on ${scopeLabel} spiked to ${formatCurrency(anomaly.value)} on ${anomaly.date} (${absPct}% above the ${formatCurrency(anomaly.baseline)} norm).`;
     case "ctr":
-      return `CTR on ${scopeLabel} dropped to ${formatPercent(anomaly.value)} on ${anomaly.date} — ${absPct}% below the ${formatPercent(anomaly.baseline)} norm.`;
+      return `CTR on ${scopeLabel} dropped to ${formatPercent(anomaly.value)} on ${anomaly.date} (${absPct}% below the ${formatPercent(anomaly.baseline)} norm).`;
     case "spend": {
       const verb = anomaly.value >= anomaly.baseline ? "surged" : "dipped";
-      return `Spend on ${scopeLabel} ${verb} to ${formatCurrency(anomaly.value)} on ${anomaly.date} — ${absPct}% ${anomaly.value >= anomaly.baseline ? "above" : "below"} the ${formatCurrency(anomaly.baseline)} pace.`;
+      return `Spend on ${scopeLabel} ${verb} to ${formatCurrency(anomaly.value)} on ${anomaly.date} (${absPct}% ${anomaly.value >= anomaly.baseline ? "above" : "below"} the ${formatCurrency(anomaly.baseline)} pace).`;
     }
   }
 }

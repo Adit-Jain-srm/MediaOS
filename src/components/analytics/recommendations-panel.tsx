@@ -15,7 +15,7 @@ export function RecommendationsPanel({ recommendations }: RecommendationsPanelPr
     return (
       <div className="flex items-center gap-2 rounded-lg border border-dashed border-border bg-card/30 px-4 py-6 text-sm text-muted-foreground">
         <Lightbulb weight="duotone" className="size-4" />
-        No actions needed — performance is steady across creatives.
+        No actions needed - performance is steady across creatives.
       </div>
     );
   }

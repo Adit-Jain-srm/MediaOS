@@ -28,7 +28,7 @@ export function BriefActions({ campaignId }: { campaignId: string }) {
 
   return (
     <Button variant="outline" size="sm" onClick={onRefresh} disabled={pending}>
-      <Sparkle className={cn(pending && "animate-pulse")} />
+      <Sparkle className={cn(pending && "shimmer")} />
       Refresh brief
     </Button>
   );

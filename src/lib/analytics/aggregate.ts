@@ -152,7 +152,7 @@ export function summarizeByCreative(
     out.push({
       creativeId,
       label: info?.label ?? `Creative ${creativeId.slice(0, 6)}`,
-      platform: info?.platform ?? group[0]?.platform ?? "—",
+      platform: info?.platform ?? group[0]?.platform ?? "-",
       ...summary,
     });
   }

@@ -88,7 +88,7 @@ export function BudgetAllocator({ budget, selected, onChange, onAllocate, alloca
         <div className="flex items-center justify-between gap-2">
           <span className="text-xs text-muted-foreground">Split your spend across the selected channels.</span>
           <Button type="button" variant="outline" size="sm" onClick={onAllocate} disabled={allocating || selected.length === 0}>
-            <Sparkle weight="fill" className={cn(allocating && "animate-pulse motion-reduce:animate-none")} />
+            <Sparkle weight="fill" className={cn(allocating && "shimmer")} />
             {allocating ? "Allocating…" : "AI allocate"}
           </Button>
         </div>

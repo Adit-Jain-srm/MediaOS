@@ -22,7 +22,7 @@ export function personaToMarkdown(persona: AudienceSegment): string {
 
 export function reportToMarkdown(report: ResearchReport, projectName: string): string {
   const out: string[] = [];
-  out.push(`# Audience Research — ${projectName}`);
+  out.push(`# Audience Research - ${projectName}`);
   out.push(`> Query: ${report.query.query}`);
   if (report.generatedAt) out.push(`> Generated: ${report.generatedAt}`);
   out.push("");
@@ -43,7 +43,7 @@ export function reportToMarkdown(report: ResearchReport, projectName: string): s
   if (report.painPoints.length) {
     out.push("## Pain points", "");
     for (const pain of report.painPoints) {
-      out.push(`- **${pain.summary}**${pain.quote ? ` — “${pain.quote}”` : ""}`);
+      out.push(`- **${pain.summary}**${pain.quote ? ` - "${pain.quote}"` : ""}`);
     }
     out.push("");
   }
@@ -70,14 +70,14 @@ export function reportToMarkdown(report: ResearchReport, projectName: string): s
 
   if (report.communityInsights.length) {
     out.push("## Community voices", "");
-    for (const c of report.communityInsights) out.push(`- [${c.platform ?? "web"}] “${c.content}”`);
+    for (const c of report.communityInsights) out.push(`- [${c.platform ?? "web"}] "${c.content}"`);
     out.push("");
   }
 
   const sources = report.sources.filter((s) => !s.provider.startsWith("_") && s.url);
   if (sources.length) {
     out.push("## Sources", "");
-    sources.forEach((s, i) => out.push(`${i + 1}. [${s.title ?? s.url}](${s.url}) — ${s.provider}`));
+    sources.forEach((s, i) => out.push(`${i + 1}. [${s.title ?? s.url}](${s.url}) - ${s.provider}`));
     out.push("");
   }
 

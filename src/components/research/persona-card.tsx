@@ -18,7 +18,7 @@ import { Citations } from "./citations";
 import { platformLabel } from "./provider-meta";
 
 function TagList({ items, tone = "muted" }: { items: string[]; tone?: "muted" | "primary" | "danger" }) {
-  if (items.length === 0) return <span className="text-xs text-muted-foreground/60">—</span>;
+  if (items.length === 0) return <span className="text-xs text-muted-foreground/60">-</span>;
   const toneClass =
     tone === "primary"
       ? "border-primary/30 bg-primary/10 text-primary"
@@ -40,7 +40,7 @@ function Field({ label, value }: { label: string; value?: string }) {
   return (
     <div className="space-y-0.5">
       <div className="text-[10px] font-medium tracking-wide text-muted-foreground uppercase">{label}</div>
-      <div className="font-mono text-xs text-foreground">{value || "—"}</div>
+      <div className="font-mono text-xs text-foreground">{value || "-"}</div>
     </div>
   );
 }
