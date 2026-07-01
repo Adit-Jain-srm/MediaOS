@@ -47,9 +47,9 @@ export function Sidebar() {
               aria-current={active ? "page" : undefined}
               className={cn(
                 "group relative flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm cursor-pointer",
-                "transition-all duration-100",
+                "transition-all duration-[var(--motion-duration-fast)]",
                 active
-                  ? "bg-sidebar-accent text-foreground"
+                  ? "bg-sidebar-accent text-foreground shadow-[0_0_8px_oklch(0.696_0.17_162.5/20%)]"
                   : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground hover:translate-x-0.5",
                 collapsed && "justify-center px-0",
                 !reduced && "hover:translate-x-0.5",

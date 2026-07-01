@@ -19,7 +19,7 @@ import { ANOMALY_SEVERITIES, type AnomalySeverity } from "@/lib/analytics/types"
 import { labelFromContent } from "@/lib/seed/targets";
 import { analyticsService, campaignService, creativeService } from "@/lib/services";
 import { PageHeader } from "@/components/layout/page-header";
-import { buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button-variants";
 import { CampaignAnalytics } from "@/components/analytics/campaign-analytics";
 import type { AnomalyView } from "@/components/analytics/anomalies-feed";
 import { BriefActions } from "@/components/analytics/analytics-actions";

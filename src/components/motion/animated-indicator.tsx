@@ -24,7 +24,7 @@ export function AnimatedIndicator({ layoutId, className }: AnimatedIndicatorProp
       transition={
         reduced
           ? { duration: 0 }
-          : { type: "spring", stiffness: 350, damping: 30 }
+          : { type: "spring", stiffness: 350, damping: 25 }
       }
     />
   );

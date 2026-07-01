@@ -15,9 +15,9 @@ import { summarize } from "@/lib/analytics";
 import { DEMO_CAMPAIGN_ID, DEMO_CAMPAIGN_NAME } from "@/lib/seed/constants";
 import { analyticsService, campaignService } from "@/lib/services";
 import { PageHeader } from "@/components/layout/page-header";
-import { FadeIn } from "@/components/motion";
+import { FadeIn, TiltCard } from "@/components/motion";
 import { Card } from "@/components/ui/card";
-import { buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button-variants";
 import { cn } from "@/lib/utils";
 import { StatsGrid } from "./stats-grid";
 import { MorningBrief } from "./morning-brief";
@@ -43,41 +43,45 @@ export default async function CommandCenterPage() {
       {/* Quick actions */}
       <FadeIn className="grid gap-3 sm:grid-cols-2">
         <Link href="/operator" className="group cursor-pointer">
-          <Card className="h-full p-4 ring-1 ring-foreground/10 transition-all duration-200 hover:bg-card/70 hover:ring-foreground/20 hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98] motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100">
-            <div className="flex items-start gap-3">
-              <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/15 text-primary">
-                <Robot className="size-5" weight="fill" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5 font-heading text-sm font-medium text-foreground">
-                  Open the Operator
-                  <ArrowRight className="size-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+          <TiltCard className="h-full">
+            <Card className="h-full p-4 ring-1 ring-foreground/10 transition-all duration-200 hover:bg-card/70 hover:ring-foreground/20 hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98] motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100">
+              <div className="flex items-start gap-3">
+                <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/15 text-primary">
+                  <Robot className="size-5" weight="fill" />
                 </div>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Give the agent a goal and watch it research, create, and deploy with cited sources.
-                </p>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5 font-heading text-sm font-medium text-foreground">
+                    Open the Operator
+                    <ArrowRight className="size-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                  </div>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Give the agent a goal and watch it research, create, and deploy with cited sources.
+                  </p>
+                </div>
               </div>
-            </div>
-          </Card>
+            </Card>
+          </TiltCard>
         </Link>
 
         <Link href="/research" className="group cursor-pointer">
-          <Card className="h-full p-4 ring-1 ring-foreground/10 transition-all duration-200 hover:bg-card/70 hover:ring-foreground/20 hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98] motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100">
-            <div className="flex items-start gap-3">
-              <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground">
-                <Binoculars className="size-5" weight="duotone" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5 font-heading text-sm font-medium text-foreground">
-                  Run audience research
-                  <ArrowRight className="size-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+          <TiltCard className="h-full">
+            <Card className="h-full p-4 ring-1 ring-foreground/10 transition-all duration-200 hover:bg-card/70 hover:ring-foreground/20 hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98] motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100">
+              <div className="flex items-start gap-3">
+                <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground">
+                  <Binoculars className="size-5" weight="duotone" />
                 </div>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Aggregate live web data into personas, pain points, and competitor angles.
-                </p>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5 font-heading text-sm font-medium text-foreground">
+                    Run audience research
+                    <ArrowRight className="size-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                  </div>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Aggregate live web data into personas, pain points, and competitor angles.
+                  </p>
+                </div>
               </div>
-            </div>
-          </Card>
+            </Card>
+          </TiltCard>
         </Link>
       </FadeIn>
 
